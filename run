@@ -1,0 +1,11 @@
+#!/bin/bash
+
+rm ChannelMPP
+echo Compiling
+cd codes
+rm ChannelMPP
+make
+cp ChannelMPP ../
+cd ..
+./ChannelMPP PBSN_10_000000_inv
+
