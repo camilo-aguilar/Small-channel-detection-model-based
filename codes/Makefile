@@ -8,7 +8,7 @@ default: ChannelMPP
 
 
 ChannelMPP: main.o $(OBJECTS)
-	$(CC) -o ChannelMPP main.o $(OBJECTS)
+	$(CC) -o ChannelMPP.exe main.o $(OBJECTS)
 
 
 main.o: main.cpp allocate.h random.h tiff.h neck.h ndmulti_e.h QualityCandy.h

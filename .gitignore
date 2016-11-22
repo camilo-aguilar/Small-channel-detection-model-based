@@ -1,0 +1,11 @@
+#Compiled Object Files
+*.o
+*.obj
+
+#Executables 
+*.exe
+*.out
+
+#Images
+*.tif
+*.tiff

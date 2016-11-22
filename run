@@ -1,11 +1,11 @@
 #!/bin/bash
 
-rm ChannelMPP
+rm ChannelMPP.exe
 echo Compiling
 cd codes
-rm ChannelMPP
+rm ChannelMPP.exe
 make
-cp ChannelMPP ../
+cp ChannelMPP.exe ../
 cd ..
-./ChannelMPP PBSN_10_000000_inv
+./ChannelMPP.exe PBSN_10_000000_inv
 
