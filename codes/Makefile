@@ -1,7 +1,7 @@
 
 #CC=icc
 CC=g++
-CFLAGS=-I. -Wno-write-strings
+CFLAGS=-I. -Wno-write-strings -O3
 OBJECTS = allocate.o data_term.o em.o mpm.o ndmulti_e.o qc_badEO.o qc_badIO.o qc_doubleSeg.o qc_freeEndsConnection.o qc_freeSeg.o qc_singleSeg.o qc_transitionP.o qualityCandy.o randlib.o tiff.o util.o
 
 default: ChannelMPP 

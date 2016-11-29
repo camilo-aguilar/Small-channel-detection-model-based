@@ -9,3 +9,6 @@
 #Images
 *.tif
 *.tiff
+
+#Text Files
+*.txt
