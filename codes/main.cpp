@@ -114,13 +114,13 @@ void median_filter2D(unsigned char **y, unsigned char **yf, int filter_size, int
 	}
 }
 
-int QuilityCandyInterface(unsigned char **yimg, double **lm, double *mean, double *vari, 
+int QuilityCandyInterface(unsigned char **yimg, double **channel_img, double **lm, double *mean, double *vari, 
 			double variance, NeckDent *mp, MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows)
 {
   FILE *fp;
   struct TIFF_img input_img, MBD_img;
-  double **img1,****img2,****img3,**img_out,**patch;
+  double **img1,****img2,****img3,**patch;
   int **img_seg;
   int32_t i,j,pixel,pixel2;
 
@@ -130,7 +130,7 @@ int QuilityCandyInterface(unsigned char **yimg, double **lm, double *mean, doubl
   
   /* Allocate image of double precision floats */
   img1 = (double **)get_img(input_img.width,input_img.height,sizeof(double));
-  img_out = (double **)get_img(input_img.width,input_img.height,sizeof(double));
+  //img_out = (double **)get_img(input_img.width,input_img.height,sizeof(double));
   img_seg = (int **)get_img(input_img.width,input_img.height,sizeof(int));
 
   img2 = (double ****)malloc(5*sizeof(double ***));
@@ -144,7 +144,7 @@ int QuilityCandyInterface(unsigned char **yimg, double **lm, double *mean, doubl
 	for ( j = 0; j < input_img.width; j++ ) 
 	{
   		img1[i][j] = (double)yimg[i][j];
-		img_out[i][j] = 0;
+		channel_img[i][j] = 0;
 		img_seg[i][j]=0;
 	 }
   }
@@ -165,57 +165,16 @@ int QuilityCandyInterface(unsigned char **yimg, double **lm, double *mean, doubl
    double *cov = (double *)malloc(MAX_K*sizeof(double));
    //K_means(img1,mu,cov,input_img.height,input_img.width,3);
 
-   get_TIFF ( &MBD_img, input_img.height, input_img.width, 'g' );
 
-  (*mp_num) = Candy_Model(img1,lm,img2,img3,img_out,img_seg,input_img.height,input_img.width,
+
+  (*mp_num) = Candy_Model(img1,lm,img2,img3,channel_img,img_seg,input_img.height,input_img.width,
 		T,iter,patch,patch_len,mu,cov,3,mp,mpp);
+
 	
-
-  for ( i = 0; i < input_img.height; i++ )
-  {
- 	 for ( j = 0; j < input_img.width; j++ ) 
- 	 {
-    	pixel = (int32_t)img_out[i][j];
-		/*mask*/
-    	if(pixel>255)
-    	{
-      		MBD_img.mono[i][j] = 255;
-    	}
-    	else
-    	{
-      		if(pixel<0) 
-      			MBD_img.mono[i][j] = 0;
-      		else 
-      			MBD_img.mono[i][j] = pixel;
-    	}
-  	}
-   }
-	if(1)
-	{
-	  char aa[30];
-	  sprintf(aa,"channels_out.tiff");
-	  /* open image file */
-	  if ( ( fp = fopen ( aa, "wb" ) ) == NULL ) {
-	    fprintf ( stderr, "cannot open file MBD_img.tif\n");
-	    exit ( 1 );
-	  }
-
-	  /* write image */
-	  if ( write_TIFF ( fp, &MBD_img ) ) {
-	    fprintf ( stderr, "error writing TIFF file" );
-	    exit ( 1 );
-	  }
-
-	  /* close image file */
-	  fclose ( fp );
-	}
-  /* de-allocate space which was used for the images */
-  free_TIFF(&(MBD_img));
-
   free_img( (void**)img1 );
   free(img2);
   free(img3);
-  free_img( (void**)img_out ); 
+  //free_img( (void**)img_out ); 
   free_img((void**)img_seg);
   free_img((void**)patch);
   free((void*)mu);
@@ -224,8 +183,11 @@ int QuilityCandyInterface(unsigned char **yimg, double **lm, double *mean, doubl
   return  (*mp_num);
 }
 
+/* Finds the difference between img1 and img2. It will color green if img1 > img2, white if img1 = img2, red if img2 > img1 */
 void difference_image(unsigned char **img1, unsigned char  **img2,int height, int width, char* name);
 
+/* Saves image + detected channels */
+void save_channel_image(double **channel_img, unsigned char  **img,int height, int width, char* name);
 
 /*
 MAIN
@@ -233,9 +195,9 @@ MAIN
 int main( int argc , char** argv)
 {
 	printf(">>>>>>>>>>>>>>>>Start of the Program<<<<<<<<<<<<<\n");
-	struct TIFF_img input_img, input_gt_img, output_img, output_color_img;
+	struct TIFF_img input_img, input_gt_img, output_img, output_color_img, MBD_img;
 	unsigned char **yimg = NULL, **yfiltered, **laplacian, **lm_img;
-	double **lm, **beta_dimg[2];
+	double **lm, **beta_dimg[2], **channel_img;
 	char infileName[1024], outfileName[1024];
 	char segfileName[1024], outfilePrefix[1024];
 	char gtfileName[1024];
@@ -343,6 +305,7 @@ int main( int argc , char** argv)
 	mpp.w_d				= -7;//1
 	mpp.w_io			= 1;//1
 	
+
 	if(mpp.w_f + mpp.w_s < mpp.gamma_d)
 	{
 		printf("Error in Parameters. Contraint 1 is not met \n");
@@ -462,6 +425,7 @@ int main( int argc , char** argv)
 		beta_dimg[0] = (double **)get_img(cols, rows, sizeof(double));
 		beta_dimg[1] = (double **)get_img(cols, rows, sizeof(double));
 		lm_img = (unsigned char **)get_img(cols, rows, sizeof(unsigned char));
+		channel_img = (double **)get_img(input_img.width,input_img.height,sizeof(double));
 		get_TIFF(&output_img, rows, cols, 'g');
 		get_TIFF(&output_color_img, rows, cols, 'c');
 	}
@@ -584,17 +548,6 @@ int main( int argc , char** argv)
 				exit(1);
 			}
 			fclose(fp);
-			
-			// PMP
-			//misclassed = calculate_PMP(xt, gt, classes, rows, cols);
-			//sprintf(outfileName, "%s_s%1.2f_p%1.2f.txt",outfilePrefix, sigma, misclassed);
-			//if ((fp = fopen(outfileName, "wb")) == NULL ) {
-			//	printf("Cannot open file %s\n", outfileName);
-			//	exit(1);
-			//}
-			//fprintf(fp,"parameters\n image = %s\n beta0 = %1.2f\n beta1 = %1.2f\n sigma = %1.2f\n pmp = %1.2f\n ",
-			//		segfileName, beta[0], beta[1], sigma, misclassed);
-			//fclose(fp);
 		} 
 	}
 	
@@ -762,7 +715,7 @@ int main( int argc , char** argv)
 	}
 	else
 	{// if(mpp.optimization_type == 2){ // RJMCMC Quility Candy model
-		np_num = QuilityCandyInterface(yfiltered, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows);
+		np_num = QuilityCandyInterface(yfiltered, channel_img, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows);
 	}
 
 	
@@ -889,10 +842,6 @@ int main( int argc , char** argv)
 	}
 		
 	
-
-	// PMP
-	//misclassed = calculate_PMP(xt, gt, classes, rows, cols);
-	//printf("misclassed = %1.4f\n", misclassed);
 	
 	
 	/* Save output Image and Write Parameters to a text file*/
@@ -961,73 +910,59 @@ int main( int argc , char** argv)
 		fprintf(fp,"\r\nEM/PMP Parameters\r\n");
 		fprintf(fp,"\r\nbeta0,=,%1.2f \r\nbeta1,=,%1.2f \r\nsigma,=,%1.2f \r\nenable_blur,=,%d \r\npmp,=,%1.2f \r\n \r\n ",
 				beta[0], beta[1], sigma, enable_blur, misclassed);
-
-			//	fprintf(fp,"parameters\r\nImage Name = %s \r\n Hard_repulsion = %d     Gaussian_tau = %1.2f\r\n",
-			//	argv[1], mpp.hard_repulsion, mpp.gaussian_tau);
-			//fprintf(fp,"error_th = %1.2f\r\namp_th = %1.2f\r\niter_num = %d\r\nrunning time = %1.0f minutes\r\n",
-			//	mpp.error_th, mpp.amp_th, mpp.iter_num, running_time/60.0);
-			
-
-		fprintf(fp,"Iteration information, ");
-		#if 0
-			for (i=0;i<mpp.iter_num/RJMCMC_ITER_DIV;i++)
-				fprintf(fp,"%d, ", i*RJMCMC_ITER_DIV);
-			fprintf(fp,"\r\n");
-			fprintf(fp,"energy, ");
-			for (i=0;i<mpp.iter_num/RJMCMC_ITER_DIV;i++)
-				fprintf(fp,"%f, ", total_e[i]);
-			fprintf(fp,"\r\n");
-			fprintf(fp,"object number, ");
-			for (i=0;i<mpp.iter_num/RJMCMC_ITER_DIV;i++)
-				fprintf(fp,"%d, ", mp_num[i]);
-			fprintf(fp,"\r\n");
-		#else
-		//	for (i=1;i<=mpp.iter_num;i++)
-		//		fprintf(fp,"%d, ", i);
-		//	fprintf(fp,"\r\n");
-		//	fprintf(fp,"energy, ");
-		//	for (i=1;i<=mpp.iter_num;i++)
-		//		fprintf(fp,"%f, ", total_e[i]);
-		//	fprintf(fp,"\r\n");
-		//	fprintf(fp,"object number, ");
-		//	for (i=1;i<=mpp.iter_num;i++)
-		//		fprintf(fp,"%d, ", mp_num[i]);
-		//	fprintf(fp,"\r\n");
-		#endif
 		fclose(fp);
 	}
 
-//	for(i=0; i < input_img.height; i++)
-//	{
-//		for(j=0; j< input_img.width; j++)
-//		{
-//			gt[i][j] = (int)(input_gt_img.mono[i][j];
-//		}
-//	}
-	printf("Finding Difference Image \n");
-	difference_image(xt, gt ,input_img.height, input_img.width,outfilePrefix);
+	//	for(i=0; i < input_img.height; i++)
+	//	{
+	//		for(j=0; j< input_img.width; j++)
+	//		{
+	//			gt[i][j] = (int)(input_gt_img.mono[i][j];
+	//		}
+	//	}
+		printf("Finding Difference Image \n");
+		difference_image(xt, gt ,input_img.height, input_img.width,outfilePrefix);
+		
+		printf("Saving Channel Image\n");
 
-	free_TIFF(&output_color_img);
-	free_TIFF(&output_img);
-	free_TIFF(&input_img);
-	free_TIFF(&input_gt_img);
-	free_img((void **)yimg);
-	free_img((void **)yfiltered);
-	free_img((void **)laplacian);
-	free_img((void **)gt);
-	free_img((void **)xt);
-	free_img((void **)blur);
-	free_img((void **)mpp.blur);
-	free_img((void **)lm);
-	free_img((void **)beta_dimg[0]);
-	free_img((void **)beta_dimg[1]);
-	free_img((void **)lm_img);
 
-	
+		for (i = 0; i < rows; i++)
+		{
+			for (j = 0; j < cols; j++)
+			{
+				yimg[i][j] = input_img.mono[i][j];
+			}
+		}
+		
 
-	printf(">>>>>>>>>>>>>>>>End of Program<<<<<<<<<<<<<\n");
-	return 0;
+		save_channel_image(channel_img, yimg,input_img.height, input_img.width, outfilePrefix);
+
+
+
+		free_TIFF(&output_color_img);
+		free_TIFF(&output_img);
+		free_TIFF(&input_img);
+		free_TIFF(&input_gt_img);
+		free_img((void **)yimg);
+		free_img((void **)yfiltered);
+		free_img((void **)laplacian);
+		free_img((void **)gt);
+		free_img((void **)xt);
+		free_img((void **)blur);
+		free_img((void **)mpp.blur);
+		free_img((void **)lm);
+		free_img((void **)beta_dimg[0]);
+		free_img((void **)beta_dimg[1]);
+		free_img((void **)lm_img);
+		free_img((void**)channel_img);
+
+
+
+		printf(">>>>>>>>>>>>>>>>End of Program<<<<<<<<<<<<<\n");
+		return 0;
 }
+
+
 
 void difference_image(unsigned char **img1, unsigned char  **img2,int height, int width, char* name)
 {
@@ -1035,7 +970,7 @@ void difference_image(unsigned char **img1, unsigned char  **img2,int height, in
 	struct TIFF_img output_tiff;
 	FILE *fp=NULL;
 	char aa[40];
-	
+	strcpy(aa,name);
 	get_TIFF ( &output_tiff, height, width, 'c' );
 	
 	for(i=0; i<height; i++)
@@ -1066,7 +1001,7 @@ void difference_image(unsigned char **img1, unsigned char  **img2,int height, in
 		}
 	}
 	
-	strcat(name,"_diff.tiff");
+	strcat(aa,"_diff.tiff");
 	/* open image file */
 	if ( ( fp = fopen ( name, "wb" ) ) == NULL ) {
 	    fprintf ( stderr, "cannot open file tif file\n");
@@ -1083,4 +1018,54 @@ void difference_image(unsigned char **img1, unsigned char  **img2,int height, in
 	  /* close image file */
 	  fclose ( fp );
 }
+
+void save_channel_image(double **channel_img, unsigned char  **img,int height, int width, char* name)
+{
+	int i=0,j=0;
+	struct TIFF_img output_tiff;
+	FILE *fp=NULL;
+	char aa[40];
+	strcpy(aa,name);
+	get_TIFF ( &output_tiff, height, width, 'c' );
+	
+	for(i=0; i<height; i++)
+	{
+		for(j=0; j<width; j++)
+		{
+			if(channel_img[i][j]  == 0)
+			{
+				output_tiff.color[0][i][j] = 255 - img[i][j];
+				output_tiff.color[1][i][j] = 255 - img[i][j];
+				output_tiff.color[2][i][j] = 255 - img[i][j];
+			}
+			else
+			{
+				//Make Green Where img2 detected object but img1 didnt 
+				output_tiff.color[0][i][j] = 255;
+				output_tiff.color[1][i][j] = 0;
+				output_tiff.color[2][i][j] = 0;
+			}
+
+
+		}
+	}
+	
+	strcat(aa,"_w_channels.tiff");
+	/* open image file */
+	if ( ( fp = fopen ( aa, "wb" ) ) == NULL ) {
+	    fprintf ( stderr, "cannot open file tif file\n");
+	    exit ( 1 );
+	  }
+
+	  /* write image */
+	  if ( write_TIFF ( fp, &output_tiff ) ) {
+	    fprintf ( stderr, "error writing TIFF file" );
+	    exit ( 1 );
+	  }
+
+	  free_TIFF(&output_tiff);
+	  /* close image file */
+	  fclose ( fp );
+}
+
 
