@@ -2,7 +2,7 @@
 #CC=icc
 CC=g++
 CFLAGS=-I. -Wno-write-strings -O3
-OBJECTS = allocate.o data_term.o em.o mpm.o ndmulti_e.o qc_badEO.o qc_badIO.o qc_doubleSeg.o qc_freeEndsConnection.o qc_freeSeg.o qc_singleSeg.o qc_transitionP.o qualityCandy.o randlib.o tiff.o util.o
+OBJECTS = allocate.o data_term.o em.o mpm.o ndmulti_e.o qc_badEO.o qc_badIO.o  qc_doubleSeg.o qc_freeEndsConnection.o qc_freeSeg.o qc_singleSeg.o  qc_transitionP.o qualityCandy.o randlib.o tiff.o util.o parameters.o 
 
 default: ChannelMPP 
 
@@ -11,7 +11,7 @@ ChannelMPP: main.o $(OBJECTS)
 	$(CC) -o ChannelMPP.exe main.o $(OBJECTS)
 
 
-main.o: main.cpp allocate.h random.h tiff.h neck.h ndmulti_e.h QualityCandy.h
+main.o: main.cpp allocate.h random.h tiff.h neck.h ndmulti_e.h QualityCandy.h Parameters.h
 	$(CC) $(CFLAGS) -c main.cpp 
 
 allocate.o: allocate.cpp allocate.h
@@ -61,6 +61,9 @@ tiff.o: tiff.cpp tiff.h
 
 util.o: util.h util.cpp
 	$(CC) $(CFLAGS) -c util.cpp
+
+parameters.o: Parameters.h 
+	$(CC) $(CFLAGS) -c Parameters.cpp
 
 clean: 
 	$(RM) count *.o *~

@@ -1,0 +1,13 @@
+PARAM_ITERATIONS = 3000000
+Widthmin		= 4
+Widthmax		= 11
+Lengthmin		= 4
+Lengthmax		= 8
+
+//Quality Candy
+gamma_d			= 34
+w_eo			= 8
+w_f				= 6
+w_s				= 30
+w_d				= -7
+w_io			= 1

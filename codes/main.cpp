@@ -16,6 +16,7 @@
 #include "em.h"
 //#include "synthetic.h"
 #include "QualityCandy.h"
+#include "Parameters.h"
 
 
 
@@ -252,6 +253,8 @@ int main( int argc , char** argv)
 	float PARAM_DECREASE_COEFFICIENT = 0.99999;   		//14 Decrease coeff = 0.999999
 	int   PARAM_ITERATIONS = 3000000;		      			//15 Iterations
 	float PARAM_BETTA_FOR_MPP = 2.7;	      			//16 Beta for MPP
+
+	INPUT_PARAMS inp; 
 	
 	/* Parameter Parsing */
 	if(1)
@@ -280,60 +283,96 @@ int main( int argc , char** argv)
 		beta[1] = PARAM_BETTA_FOR_MPP;
 	}
 
+	inp = parse_input_qc(argc,argv);
 	
-	
-	mpp.hard_repulsion	= 4;	// 4(RJMCMC) 4
-	mpp.gaussian_tau	= 15;	// 6.(MBND) 20.(RJMCMC)  
-	
-	
-	mpp.widthmin		= 4;	// 6 6 (MBND) 9(RJMCMC)	8	9	9
-	mpp.widthmax		= 11;	// 10 12 (MBND) 14(RJMCMC)	14	18	14
-	mpp.lengthmin		= 4;	// 8 10 (MBND) 11(RJMCMC)	10	5	5 // should be smaller than 10
-	mpp.lengthmax		= 8;	// 20 30 (MBND) 34(RJMCMC)	32	25	32
-	
-	//Denting and Necking Channels
-	mpp.symmetry_th		= 0;	// 8
-	mpp.lambda_s		= 0;	//Symmetry Potential
-	mpp.lambda_nc		= 0;
-	
-		
-	//Quality Candy
-	mpp.gamma_d			= 34;//34; 
-	mpp.w_eo			= 8;//1
-	mpp.w_f				= 6; //1
-	mpp.w_s				= 30;//1
-	mpp.w_d				= -7;//1
-	mpp.w_io			= 1;//1
-	
+	mpp.iter_num = inp.iterations;
+	mpp.gamma_d = inp.gamma_d;
+	mpp.w_eo = inp.w_eo;
+	mpp.w_f = inp.w_f;
+	mpp.w_s = inp.w_s;
+	mpp.w_d = inp.w_d;
+	mpp.w_io = inp.w_io;
 
-	if(mpp.w_f + mpp.w_s < mpp.gamma_d)
-	{
-		printf("Error in Parameters. Contraint 1 is not met \n");
-		exit(1);
-	}
-	/*
-	if(2*mmp.w_f + 2*mpp.w_s < mpp.gamma_d)
-	{
-		printf("Error in Parameters. Contraint 1 is not met \n")
-		exit(1);
-	}
-	if(mmp.w_f + mpp.w_s < mpp.gamma_d)
-	{
-		printf("Error in Parameters. Contraint 1 is not met \n")
-		exit(1);
-	}
-	if(mmp.w_f + mpp.w_s < mpp.gamma_d)
-	{
-		printf("Error in Parameters. Contraint 1 is not met \n")
-		exit(1);
-	}
-	if(mmp.w_f + mpp.w_s < mpp.gamma_d)
-	{
-		printf("Error in Parameters. Contraint 1 is not met \n")
-		exit(1);
-	}
+	printf("Iterations: %d\n ", mpp.iter_num);
+
+
+
+
+	#if 0
+	/* 
+	   Constrain 1
+	   Energy of a free segment s1 is larfer than the energy 
+	   of the empty configuration. In worse case, deta term is -1 
 	*/
+
+	if(mpp.w_f + mpp.w_s - mpp.gamma_d < 0)
+	{
+		printf("Error in Parameters. Contraint 1 (w_f + w_s - gamma_d > 0) is not met \n");
+		exit(1);
+	}
 	
+	/*
+		Constrain 2	
+		Energy of two single segmets s1 and s2 is larger than energy of the empty configuration
+		(Worse case is that gamma_d = -1 for each segment and w_eo = -1)
+	*/
+
+	if(2* mpp.w_f + 2*mpp.w_d - mpp.w_eo  - 2*mpp.gamma_d < 0)
+	{
+		printf("Error in Parameters. Contraint 2 (2*w_f + 2* w_d - w_eo  - 2 gamma_d >0) is not met \n");
+		exit(1);
+	}
+
+
+	/*
+	   Constrain 3
+	   Energy of two singe segments is larger than the energy of empty configuration.
+	   Considering data energy is -1 for each segment
+	*/
+	if(2*mpp.gamma_d + mpp.w_f  > 2* mpp.w_s)
+	{
+		printf("Error in Parameters. Contraint 2 (2*gamma_d + w_f < 2* w_s) is not met \n");
+		
+		exit(1);
+	}
+
+
+	/*
+		Constrain 4	
+		The energy must increase by adding two double segments which do not fit the data
+		linking two single segments
+	*/
+
+	if(-3* mpp.w_eo  + 4*mpp.gamma_d + 2*mpp.w_f < 2*mpp.w_d)
+	{
+		printf("Error in Parameters. Contraint 4 (-3* w_eo  + 4*gamma_d + 2*wf > 2*w_d) is not met \n");
+		exit(1);
+	}
+
+	/*
+		Constrain 5
+		Energy must decrease by adding a single segment to another single segmet.
+	*/
+
+	if(mpp.w_f > 0)
+	{
+		printf("Error in Parameters. Contraint 5 (w_f < 0) is not met.  \n");
+		exit(1);
+	}
+
+	/*
+		Constrain 6	
+		Internal Bad Orientation must be positive or zero
+	*/
+
+	if(mpp.w_io < 0)
+	{
+		printf("Error in Parameters. Contraint 6 (w_io >= 0) is not met \n");
+		exit(1);
+	}
+
+	#endif
+
 	//Denting
 	mpp.dent_l_w_ratio	= 1.3; // 1.25 (MBND) 1.3(RJMCMC)1.3
 	
@@ -1067,5 +1106,11 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 	  /* close image file */
 	  fclose ( fp );
 }
+
+
+
+
+
+
 
 
