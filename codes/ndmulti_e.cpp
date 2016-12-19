@@ -3267,8 +3267,11 @@ void Gaussian_beta(double **beta_img[], double *beta, int cols, int rows, NeckDe
 	double t, dtmp;
 
 
+	return;
 	w = mp->width;// 5 mp->width;
 	mp->length += 3;// 6 draw more zeros both side of length direction.
+	
+
 	l = mp->length;
 	nd_GenCornerPoint(mp);
 	pt1 = mp->r[0];
@@ -4575,12 +4578,14 @@ void calculate_betaimg(double **beta_img[], double *beta, NeckDent *mp,
 {
 	int i, j, k;
 
+
 	for (i=0; i<rows; i++){
 		for (j=0; j<cols; j++){
 			beta_img[0][i][j] = beta[1];
 			beta_img[1][i][j] = beta[1];
 		}
 	}
+
 	for(k = 0; k<np_num; k++){
 		Gaussian_beta(beta_img, beta, cols, rows, &(mp[k]), mpp);
 	}

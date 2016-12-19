@@ -429,10 +429,10 @@ void dilation(int **seg_img,int **dilated_img,int width,int height)
 
 
 int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double ****img_seg_l, double **output_img, int **output_seg, int height,int width,double T_origin,int iter,double **patch, int patch_len,double *mu, double *cov, int label,
-				 NeckDent *mp, MPP_Parameters mpp) 
+				 NeckDent **mp, MPP_Parameters mpp) 
 {
 
-
+	int mp_num = 0;
 
 	struct TIFF_img inter_img_mrf;
 	FILE *fp;
@@ -719,8 +719,8 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 	
 	printf("free=%d,single=%d,double=%d\n",C->n_f,C->n_s,C->n_d);
 	DrawLine(output_img,C);
-	int mp_num = SaveCandy2MP(C, mp);
-
+	//int mp_num = SaveCandy2MP(C, &mp);
+	*mp = SaveCandy2MP(C, &mp_num);
 	freeCandy(C);
 	free_img( (void**)index_matrix );
 	free_img( (void**)indexmask );
@@ -1337,8 +1337,8 @@ void DrawLine(double **img,Candy *C)
 }
 
 
-
-int SaveCandy2MP(Candy *C, NeckDent *mp)
+NeckDent *SaveCandy2MP(Candy *C, int *num)
+//int SaveCandy2MP(Candy *C, NeckDent **mp)
 {
 	int n_f = C->n_f;
 	int n_s = C->n_s;
@@ -1346,6 +1346,10 @@ int SaveCandy2MP(Candy *C, NeckDent *mp)
 
 	site enda, endb;
 
+	NeckDent *mp=NULL;
+
+	mp = new NeckDent [n_f + n_s + n_d];
+	//mp = (NeckDent *)malloc( (n_f + n_s + n_d) *sizeof(NeckDent));
 	Node *p = C->link_f;
 	int j=0;
 	for (int i = 0;i<n_f;i++)
@@ -1375,6 +1379,8 @@ int SaveCandy2MP(Candy *C, NeckDent *mp)
 		mp[j].e[3]			= 0;
 		j++;
 	}
+
+
 
 	p = C->link_s;
 	for (int i = 0;i<n_s;i++)
@@ -1433,7 +1439,9 @@ int SaveCandy2MP(Candy *C, NeckDent *mp)
 		mp[j].e[3]			= 0;
 		j++;
 	}
-	return j;
+
+	*num = j;
+	return mp;
 }
 
 

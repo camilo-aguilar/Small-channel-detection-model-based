@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "randlib.h"
 #include "math.h"
 #include "util.h" //KDW
@@ -163,10 +164,11 @@ typedef struct
 Candy* CandyInit(MPP_Parameters mpp);
 void freeCandy(Candy *C);
 void DrawLine(double **img,Candy *C);
-int SaveCandy2MP(Candy *C, NeckDent *mp);
+//int SaveCandy2MP(Candy *C, NeckDent *mp);
+NeckDent *SaveCandy2MP(Candy *C, int *num);
 //void Candy_Model(double **input_img,double ***img_mpp_l,double ***img_seg_l,double **output_img,int height,int width,double T,int iter,double **patch, int patch_len);
 int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double ****img_seg_l, double **output_img, int **output_seg, int height,int width,double T_origin,int iter,double **patch, int patch_len,double *mu, double *cov, int label,
-				 NeckDent *mp, MPP_Parameters mpp); 
+				 NeckDent **mp, MPP_Parameters mpp); 
 
 LinkedList LinkedListInit();
 void LinkedListInsert(LinkedList L,int i, lineObj* x);
@@ -198,6 +200,7 @@ int FreeSeg_center_move(Candy *M, double **img, int **img_seg, double ****img_mp
 
 int SingleSeg_freeEnd_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
 int SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+
 
 double theta_from_two_ends(site enda, site endb);
 

@@ -21,6 +21,7 @@
 
 
 
+
 double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols)
 {
 	unsigned char xt255;
@@ -116,7 +117,7 @@ void median_filter2D(unsigned char **y, unsigned char **yf, int filter_size, int
 }
 
 int QuilityCandyInterface(unsigned char **yimg, double **channel_img, double **lm, double *mean, double *vari, 
-			double variance, NeckDent *mp, MPP_Parameters mpp, double *total_e, int *mp_num, 
+			double variance, NeckDent **mp, MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows)
 {
   FILE *fp;
@@ -217,7 +218,8 @@ int main( int argc , char** argv)
 	double **blur, sigma = 0., dsum, sum[CLASSES], di, dj, misclassed;
 	int blur_size = 5, enable_blur = 0;
 	int run_emmpm = 0;
-	NeckDent mp[MAX_MKPNT_NUM];
+	//NeckDent mp[MAX_MKPNT_NUM];
+	NeckDent *mp = NULL;
 	int np_num;
 	char filename[1024];
 	double stdev;
@@ -287,14 +289,37 @@ int main( int argc , char** argv)
 	
 	mpp.iter_num = inp.iterations;
 	mpp.gamma_d = inp.gamma_d;
-	mpp.w_eo = inp.w_eo;
+	mpp.w_eo = 20;
 	mpp.w_f = inp.w_f;
 	mpp.w_s = inp.w_s;
 	mpp.w_d = inp.w_d;
 	mpp.w_io = inp.w_io;
 
-	printf("Iterations: %d\n ", mpp.iter_num);
 
+
+	//printf("Iterations: %d\n ", mpp.iter_num);
+	//printf("gamma_d: %f\n ", mpp.gamma_d);
+	//printf("w_eo: %f\n ", mpp.w_eo);
+	//printf("w_f: %f\n ", mpp.w_f);
+	//printf("w_s: %f\n ", mpp.w_s);
+	//printf("w_d: %f\n ", mpp.w_d);
+	//printf("w_io: %f\n ", mpp.w_io);
+
+
+	mpp.hard_repulsion	= 4;	// 4(RJMCMC) 4
+	mpp.gaussian_tau	= 15;	// 6.(MBND) 20.(RJMCMC)  
+	
+	
+	mpp.widthmin		= 4;	// 6 6 (MBND) 9(RJMCMC)	8	9	9
+	mpp.widthmax		= 11;	// 10 12 (MBND) 14(RJMCMC)	14	18	14
+	mpp.lengthmin		= 4;	// 8 10 (MBND) 11(RJMCMC)	10	5	5 // should be smaller than 10
+	mpp.lengthmax		= 8;	// 20 30 (MBND) 34(RJMCMC)	32	25	32
+	
+	//Denting and Necking Channels
+	mpp.symmetry_th		= 0;	// 8
+	mpp.lambda_s		= 0;	//Symmetry Potential
+	mpp.lambda_nc		= 0;
+	
 
 
 
@@ -742,6 +767,7 @@ int main( int argc , char** argv)
 		}
 	}	
 
+	
 
 	if(mpp.optimization_type == 0)
 	{ // RJMCMC
@@ -754,17 +780,18 @@ int main( int argc , char** argv)
 	}
 	else
 	{// if(mpp.optimization_type == 2){ // RJMCMC Quility Candy model
-		np_num = QuilityCandyInterface(yfiltered, channel_img, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows);
+		np_num = QuilityCandyInterface(yfiltered, channel_img, lm, mu, vari, variance, &mp, mpp, total_e, mp_num, cols, rows);
 	}
 
 	
 	
 	
 	printf("\nCalculating New Betas \n\n");
-
 	beta[0] = 0.0;
 
 	calculate_betaimg(beta_dimg, beta, mp, np_num, mpp, cols, rows); // if mpp.gaussian_tau big, beta image channel become narrow
+
+	
 	double_to_uchar(beta_dimg[0], lm_img, cols, rows);
 	
 
@@ -812,7 +839,7 @@ int main( int argc , char** argv)
 	}
 
 	/*write objects to a text file*/
-	if(1)
+	if(0)
 	{
 		sprintf(filename, "%s_all_mp.txt",outfilePrefix);
 		if ((fp = fopen(filename, "wb")) == NULL ) {
@@ -920,30 +947,35 @@ int main( int argc , char** argv)
 		fprintf(fp,"\r\nChannel Parameters\r\n");
 		fprintf(fp,"widthmin = %d\r\nwidthmax = %d\r\nlengthmin = %d\r\nlengthmax = %d\r\n",
 				mpp.widthmin, mpp.widthmax, mpp.lengthmin, mpp.lengthmax);
+
+		fprintf(fp,"\r\n QualityCandy Parameters\r\n");
+		fprintf(fp,"Gamma_d = %f\r\n W_eo = %f\r\n W_s = %f\r\n  W_f = %f\r\n W_s = %f\r\n W_d = %f\r\n W_io = %f \r\n",
+				mpp.gamma_d, mpp.w_eo, mpp.w_s, mpp.w_f, mpp.w_s,mpp.w_d,mpp.w_io);
+
+
+		//fprintf(fp,"\r\nDenting/Necking Channels Parameters\r\n");
+		//fprintf(fp,"dent_l_w_ratio = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\n",
+		//			mpp.dent_l_w_ratio, mpp.amp_th, mpp.lambda_l);
 				
-		fprintf(fp,"\r\nDenting/Necking Channels Parameters\r\n");
-		fprintf(fp,"dent_l_w_ratio = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\n",
-				mpp.dent_l_w_ratio, mpp.amp_th, mpp.lambda_l);
-				
-		fprintf(fp,"\r\nOptimization Parameters\r\n");
-		fprintf(fp,"p_birth = %1.2f\r\np_death = %1.2f\r\np_translation = %1.2f\r\np_dilation = %1.2f\r\np_rotation = %1.2f\r\np_switching = %1.2f\r\n",
-				mpp.p_birth, mpp.p_death, mpp.p_translation, mpp.p_dilation, mpp.p_rotation, mpp.p_switching);
+		//	fprintf(fp,"\r\nOptimization Parameters\r\n");
+		//	fprintf(fp,"p_birth = %1.2f\r\np_death = %1.2f\r\np_translation = %1.2f\r\np_dilation = %1.2f\r\np_rotation = %1.2f\r\np_switching = %1.2f\r\n",
+		//			mpp.p_birth, mpp.p_death, mpp.p_translation, mpp.p_dilation, mpp.p_rotation, mpp.p_switching);
 		
 		//fprintf(fp,"single_e_test = %d\r\noptimization_type = %d\r\nfixed_param_num = %d\r\nalm(b_zero) = %1.2f\r\nT0 = %1.2f\r\n",
 		//		mpp.test, mpp.optimization_type, mpp.fixed_param_num, mpp.alm, mpp.T0);
 		
-		fprintf(fp,"\r\nMPP Interaction Parameters\r\n");
-		fprintf(fp,"lambda_e = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\nlambda_s = %1.2f\r\nlambda_nc = %1.2f\r\nlambda_dc = %1.2f\r\n",
-				mpp.lambda_e, mpp.lambda_a, mpp.lambda_l, mpp.lambda_s, mpp.lambda_nc,mpp.lambda_dc);
+		//fprintf(fp,"\r\nMPP Interaction Parameters\r\n");
+		//fprintf(fp,"lambda_e = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\nlambda_s = %1.2f\r\nlambda_nc = %1.2f\r\nlambda_dc = %1.2f\r\n",
+		//		mpp.lambda_e, mpp.lambda_a, mpp.lambda_l, mpp.lambda_s, mpp.lambda_nc,mpp.lambda_dc);
 				
-		fprintf(fp,"betampp = %1.2f\r\nvk(delta) = %1.2f\r\nalpha = %1.2f\r\nde_coeff = %1.8f\r\nnd_type_num = %d\r\n",
-				mpp.betampp, mpp.vk, mpp.alpha, mpp.de_coeff, mpp.nd_type_num);
+		//fprintf(fp,"betampp = %1.2f\r\nvk(delta) = %1.2f\r\nalpha = %1.2f\r\nde_coeff = %1.8f\r\nnd_type_num = %d\r\n",
+		//		mpp.betampp, mpp.vk, mpp.alpha, mpp.de_coeff, mpp.nd_type_num);
 
-		fprintf(fp,"DELTA_TRANSLATION,=,%1.2f \r\nDELTA_DILATION,=,%1.2f \r\nDELTA_ROTATION,=,%1.2f \r\n",
-					DELTA_TRANSLATION,			DELTA_DILATION,			DELTA_ROTATION);
+		//fprintf(fp,"DELTA_TRANSLATION,=,%1.2f \r\nDELTA_DILATION,=,%1.2f \r\nDELTA_ROTATION,=,%1.2f \r\n",
+		//			DELTA_TRANSLATION,			DELTA_DILATION,			DELTA_ROTATION);
 
-				fprintf(fp,"length_th = %1.2f\r\nsymmetry_th = %1.2f\r\nWEIGHT_AMP = %1.2f\r\nWEIGHT_OFFSET = %1.2f\r\nNECK_DISCON_TH = %1.2f\r\nDENT_DISCON_TH = %1.2f\r\n",
-				mpp.length_th, mpp.symmetry_th, WEIGHT_AMP, WEIGHT_OFFSET, NECK_DISCON_TH, DENT_DISCON_TH);
+		//		fprintf(fp,"length_th = %1.2f\r\nsymmetry_th = %1.2f\r\nWEIGHT_AMP = %1.2f\r\nWEIGHT_OFFSET = %1.2f\r\nNECK_DISCON_TH = %1.2f\r\nDENT_DISCON_TH = %1.2f\r\n",
+		//		mpp.length_th, mpp.symmetry_th, WEIGHT_AMP, WEIGHT_OFFSET, NECK_DISCON_TH, DENT_DISCON_TH);
 				
 
 		fprintf(fp,"\r\nEM/PMP Parameters\r\n");
@@ -977,7 +1009,7 @@ int main( int argc , char** argv)
 		save_channel_image(channel_img, yimg,input_img.height, input_img.width, outfilePrefix);
 
 
-
+		free(mp);
 		free_TIFF(&output_color_img);
 		free_TIFF(&output_img);
 		free_TIFF(&input_img);
@@ -996,7 +1028,7 @@ int main( int argc , char** argv)
 		free_img((void**)channel_img);
 
 
-
+    	
 		printf(">>>>>>>>>>>>>>>>End of Program<<<<<<<<<<<<<\n");
 		return 0;
 }
@@ -1042,7 +1074,7 @@ void difference_image(unsigned char **img1, unsigned char  **img2,int height, in
 	
 	strcat(aa,"_diff.tiff");
 	/* open image file */
-	if ( ( fp = fopen ( name, "wb" ) ) == NULL ) {
+	if ( ( fp = fopen ( aa, "wb" ) ) == NULL ) {
 	    fprintf ( stderr, "cannot open file tif file\n");
 	    exit ( 1 );
 	  }
@@ -1103,6 +1135,8 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 	  }
 
 	  free_TIFF(&output_tiff);
+
+
 	  /* close image file */
 	  fclose ( fp );
 }
