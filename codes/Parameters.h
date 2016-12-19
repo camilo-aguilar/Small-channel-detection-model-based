@@ -10,12 +10,12 @@
 typedef struct _input_params 
 {
   int iterations;
-  int gamma_d;//34;
-  int w_eo;//1
-  int w_f;//1
-  int w_s;//1
-  int w_d;//1
-  int w_io;//1
+  double gamma_d;//34;
+  double w_eo;//1
+  double w_f;//1
+  double w_s;//1
+  double w_d;//1
+  double w_io;//1
 } INPUT_PARAMS;
 
 
