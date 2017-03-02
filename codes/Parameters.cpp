@@ -29,7 +29,6 @@ INPUT_PARAMS parse_input_qc(int argc,char** argv)
 	if(argc>2)
 	{
 	
-		int remaining = argc -2;
 
 		int cntr=2;
 		while(cntr<argc)

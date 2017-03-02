@@ -1,23 +1,18 @@
 #include <stdio.h>
-#define _USE_MATH_DEFINES	// for constant M_PI
+#define _USE_MATH_DEFINES	
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
 #include <time.h>
 
-//#include "cv.h"
-//#include "cxcore.h"
-//#include "highgui.h"
 #include "allocate.h"
 #include "random.h"
 #include "tiff.h"
 #include "neck.h"
 #include "ndmulti_e.h"
 #include "em.h"
-//#include "synthetic.h"
 #include "QualityCandy.h"
 #include "Parameters.h"
-
 
 
 
@@ -260,7 +255,13 @@ int main( int argc , char** argv)
 	
 	/* Parameter Parsing */
 	if(1)
-	{ 
+	{
+		if(argc < 2)
+		{
+			printf("Error, only 2 arguemnts\n");
+			exit(1);
+		} 
+		
 		sprintf(infileName, "%s.tiff",argv[1]);
 		sprintf(segfileName, "%s_seg.tiff",argv[1]);
 		sprintf(gtfileName, "%s_gt.tiff",argv[1]);
@@ -289,7 +290,7 @@ int main( int argc , char** argv)
 	
 	mpp.iter_num = inp.iterations;
 	mpp.gamma_d = inp.gamma_d;
-	mpp.w_eo = 20;
+	mpp.w_eo = inp.w_eo;
 	mpp.w_f = inp.w_f;
 	mpp.w_s = inp.w_s;
 	mpp.w_d = inp.w_d;
@@ -297,13 +298,13 @@ int main( int argc , char** argv)
 
 
 
-	//printf("Iterations: %d\n ", mpp.iter_num);
-	//printf("gamma_d: %f\n ", mpp.gamma_d);
-	//printf("w_eo: %f\n ", mpp.w_eo);
-	//printf("w_f: %f\n ", mpp.w_f);
-	//printf("w_s: %f\n ", mpp.w_s);
-	//printf("w_d: %f\n ", mpp.w_d);
-	//printf("w_io: %f\n ", mpp.w_io);
+	printf("Iterations: %d\n ", mpp.iter_num);
+	printf("gamma_d: %f\n ", mpp.gamma_d);
+	printf("w_eo: %f\n ", mpp.w_eo);
+	printf("w_f: %f\n ", mpp.w_f);
+	printf("w_s: %f\n ", mpp.w_s);
+	printf("w_d: %f\n ", mpp.w_d);
+	printf("w_io: %f\n ", mpp.w_io);
 
 
 	mpp.hard_repulsion	= 4;	// 4(RJMCMC) 4
@@ -320,83 +321,6 @@ int main( int argc , char** argv)
 	mpp.lambda_s		= 0;	//Symmetry Potential
 	mpp.lambda_nc		= 0;
 	
-
-
-
-	#if 0
-	/* 
-	   Constrain 1
-	   Energy of a free segment s1 is larfer than the energy 
-	   of the empty configuration. In worse case, deta term is -1 
-	*/
-
-	if(mpp.w_f + mpp.w_s - mpp.gamma_d < 0)
-	{
-		printf("Error in Parameters. Contraint 1 (w_f + w_s - gamma_d > 0) is not met \n");
-		exit(1);
-	}
-	
-	/*
-		Constrain 2	
-		Energy of two single segmets s1 and s2 is larger than energy of the empty configuration
-		(Worse case is that gamma_d = -1 for each segment and w_eo = -1)
-	*/
-
-	if(2* mpp.w_f + 2*mpp.w_d - mpp.w_eo  - 2*mpp.gamma_d < 0)
-	{
-		printf("Error in Parameters. Contraint 2 (2*w_f + 2* w_d - w_eo  - 2 gamma_d >0) is not met \n");
-		exit(1);
-	}
-
-
-	/*
-	   Constrain 3
-	   Energy of two singe segments is larger than the energy of empty configuration.
-	   Considering data energy is -1 for each segment
-	*/
-	if(2*mpp.gamma_d + mpp.w_f  > 2* mpp.w_s)
-	{
-		printf("Error in Parameters. Contraint 2 (2*gamma_d + w_f < 2* w_s) is not met \n");
-		
-		exit(1);
-	}
-
-
-	/*
-		Constrain 4	
-		The energy must increase by adding two double segments which do not fit the data
-		linking two single segments
-	*/
-
-	if(-3* mpp.w_eo  + 4*mpp.gamma_d + 2*mpp.w_f < 2*mpp.w_d)
-	{
-		printf("Error in Parameters. Contraint 4 (-3* w_eo  + 4*gamma_d + 2*wf > 2*w_d) is not met \n");
-		exit(1);
-	}
-
-	/*
-		Constrain 5
-		Energy must decrease by adding a single segment to another single segmet.
-	*/
-
-	if(mpp.w_f > 0)
-	{
-		printf("Error in Parameters. Contraint 5 (w_f < 0) is not met.  \n");
-		exit(1);
-	}
-
-	/*
-		Constrain 6	
-		Internal Bad Orientation must be positive or zero
-	*/
-
-	if(mpp.w_io < 0)
-	{
-		printf("Error in Parameters. Contraint 6 (w_io >= 0) is not met \n");
-		exit(1);
-	}
-
-	#endif
 
 	//Denting
 	mpp.dent_l_w_ratio	= 1.3; // 1.25 (MBND) 1.3(RJMCMC)1.3
@@ -530,7 +454,7 @@ int main( int argc , char** argv)
 		}
 	} 
 
-	/* Calculate Blur Matrix. Innecesary */
+	/* Calculate Blur Matrix. If necesary */
 	if(1)
 	{
 		blur = (double **)get_img(blur_size, blur_size, sizeof(double));
@@ -579,21 +503,7 @@ int main( int argc , char** argv)
 			start_time=clock();
 			printf("start time is:%1.0f ms\n",(double)(start_time)/CLOCKS_PER_SEC*100);
 			
-			#ifdef EMMPM_ONLY
-			
-				beta[0] = 2.9;
-				beta[1] = beta[0];
-				beta[2] = beta[1];
-				gamma[0] = 0;
-				gamma[1] = gamma[0];
-				gamma[2] = gamma[1];
-				emiter = 10;
-				mpmiter = 10;
-				classes = 2;
-				enable_blur = 0;
-				sprintf(segfileName, "%s_seg8nn_beta%1.1f.tiff",argv[1],beta[0]);
-			
-			#endif
+
 			enable_blur = 0;
 			emmpm(yimg, xt, beta, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
 			end_time=clock();
@@ -830,12 +740,12 @@ int main( int argc , char** argv)
 		avg_se		= avg_se	/np_num;
 		avg_U		= avg_U		/np_num;
 
-		printf("gaussian tau = %1.4f\n",mpp.gaussian_tau);
-		printf("average width = %1.4f\n",avg_width);
-		printf("average amp = %1.4f\n",avg_amp);
-		printf("average error = %1.4f\n",avg_error);
-		printf("average se = %1.4f\n",avg_se	);
-		printf("average U = %1.4f\n",avg_U	);
+		//printf("gaussian tau = %1.4f\n",mpp.gaussian_tau);
+		//printf("average width = %1.4f\n",avg_width);
+		//printf("average amp = %1.4f\n",avg_amp);
+		//printf("average error = %1.4f\n",avg_error);
+		//printf("average se = %1.4f\n",avg_se	);
+		//printf("average U = %1.4f\n",avg_U	);
 	}
 
 	/*write objects to a text file*/
@@ -1140,11 +1050,5 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 	  /* close image file */
 	  fclose ( fp );
 }
-
-
-
-
-
-
 
 

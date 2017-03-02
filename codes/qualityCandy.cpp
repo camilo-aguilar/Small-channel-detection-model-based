@@ -458,9 +458,6 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 				dilated_img[ii][jj] = 0;
 			}	
 
-
-
-
 	double prior_pen1 = mpp.error_th;//KDW
 	double prior_pen2 = PEN_2;//0.5;
 
@@ -519,11 +516,13 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 	printf("Start RJMCMC\n");
 	for (int i = 0;i<mpp.iter_num;i++)
 	{
-		if(i > 0 && i % (mpp.iter_num/10) == 0) printf(" %2.2f Percent Complete \n", (float)i/(float)mpp.iter_num * 100.00);
+		if(i > 0 && i % (mpp.iter_num/10) == 0) 
+			printf(" %2.2f of Iterations Complete \n", (float)i/(float)mpp.iter_num * 100.00);
+
 		double r = random2();
 		T = T/(mpp.de_coeff); //KDW
 
-		if (r <C->p_b_d)   //birth and death step
+		if (r < C->p_b_d)   //birth and death step
 		{
 			double rr = random2();
 			double rrr = random2();

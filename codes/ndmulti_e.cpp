@@ -3267,7 +3267,6 @@ void Gaussian_beta(double **beta_img[], double *beta, int cols, int rows, NeckDe
 	double t, dtmp;
 
 
-	return;
 	w = mp->width;// 5 mp->width;
 	mp->length += 3;// 6 draw more zeros both side of length direction.
 	

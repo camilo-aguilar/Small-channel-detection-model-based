@@ -7,5 +7,5 @@ rm ChannelMPP.exe
 make
 cp ChannelMPP.exe ../
 cd ..
-./ChannelMPP.exe FM2-2-P1-R2-4X_000005 -n 3000000
+./ChannelMPP.exe cracked -n 3000000
 
