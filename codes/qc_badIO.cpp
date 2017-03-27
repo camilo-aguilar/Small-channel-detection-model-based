@@ -53,22 +53,20 @@ int Bad_IO(lineObj *Seg, Candy *M, double *g_Rio)
 	int n_io = 0;
 	(*g_Rio) = 0;
 	double grio;
-#ifdef QUALITY_CANDY
+
 	Bad_IO_from_Link(Seg,M->link_f,M->n_f,&grio);
 	(*g_Rio) += grio;
-	if((*g_Rio)<INF){
+	if((*g_Rio)<INF)
+	{
 		Bad_IO_from_Link(Seg,M->link_s,M->n_s,&grio);
 		(*g_Rio) += grio;
 	}
-	if((*g_Rio)<INF){
+	if((*g_Rio)<INF)
+	{
 		Bad_IO_from_Link(Seg,M->link_d,M->n_d,&grio);
 		(*g_Rio) += grio;
 	}
-#else
-	n_io+= Bad_IO_from_Link(Seg,M->link_f,M->n_f,g_Rio);
-	if(n_io<INF) n_io+= Bad_IO_from_Link(Seg,M->link_s,M->n_s,g_Rio);
-	if(n_io<INF) n_io+= Bad_IO_from_Link(Seg,M->link_d,M->n_d,g_Rio);
-#endif	
+	
 	return n_io;
 }
 

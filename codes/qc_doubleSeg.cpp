@@ -235,10 +235,6 @@ site SelectNearestFreeEnd(site a,int a_num, int a_type, Candy *M,int searchR, in
 				*num = i;
 			}
 		}
-		else
-		{
-//KDW			printf("single seg wrong\n");
-		}
 	}
 	}
 	else
@@ -314,11 +310,15 @@ int check_exist(site a, site b, lineObj *belong)
 		for(int i = 0; i<n; i++){
 			p = belong->enda_C[i];
 			if((a.x == p->enda.x)&&(a.y == p->enda.y))
+			{
 				if((b.x == p->endb.x)&&(b.y == p->endb.y))
 					return 1;
-			else// a = p->endb
+			}
+			else
+			{
 				if((b.x == p->enda.x)&&(b.y == p->enda.y))
 					return 1;
+			}
 		}
 	}
 	if((a.x == belong->endb.x)&&(a.y == belong->endb.y)){
@@ -328,11 +328,15 @@ int check_exist(site a, site b, lineObj *belong)
 		for(int i = 0; i<n; i++){
 			p = belong->endb_C[i];
 			if((a.x == p->enda.x)&&(a.y == p->enda.y))
+			{
 				if((b.x == p->endb.x)&&(b.y == p->endb.y))
 					return 1;
-			else // a = p->endb
+			}
+			else
+			{ 
 				if((b.x == p->enda.x)&&(b.y == p->enda.y))
 					return 1;
+			}
 		}
 	}
 	return 0;
@@ -371,7 +375,6 @@ int SelectNearestEnd_in_link(LinkedList link, int n, site a, lineObj *belong, do
 
 int SelectNearestEnd(site a,lineObj *belong,Candy *M,int searchR, site *candid)
 {
-	int num=0;
 	int found=0;
 	double min_dist = searchR*searchR;
 
@@ -396,7 +399,6 @@ void AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double **
 	int n_f = M->n_f;
 	int n_d = M->n_d;
 
-	double lambda = M->lambda;
 
 	
 
@@ -520,21 +522,12 @@ void AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double **
 	double searchRatio = 0.25;
 	double g_Rio = 0;
 
-	int w_num = DoubleSeg->width - W_MIN;
-	int n_io = Bad_IO(DoubleSeg, M ,&g_Rio);
+	Bad_IO(DoubleSeg, M ,&g_Rio);
 
-	/*
-			if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) >= MAX(c_len,len)/2)
-			{
-				double theta = l->theta;
-				double tau_ij = MIN(ABS(c_theta-theta),_PI-ABS(c_theta-theta));
-				if (tau_ij > TAU_MAX)
-				//if (ABS(tau_ij-TAU_MAX) > _PI/20)
-						n_eo++;
-			}
-			*/
+
+
 	double g_Rc =0.;
-	int n_eo = Bad_EO(NEIGHBOORHOOD,searchRatio,DoubleSeg,M,&g_Rc);
+	Bad_EO(NEIGHBOORHOOD,searchRatio,DoubleSeg,M,&g_Rc);
 
 	//should add data term here, assume homogeneous Poisson 
 	int img_num = 0;
@@ -610,7 +603,6 @@ void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double
 	int n_s = M->n_s;
 	int n_f = M->n_f;
 	int n_d = M->n_d;
-	double lambda = M->lambda;
 
 	if (n_d != 0)
 	{
@@ -625,10 +617,10 @@ void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double
 
 		lineObj *l = p->index;
 		double g_Rio = 0; 
-		int n_io = Bad_IO(l, M,&g_Rio);
+		Bad_IO(l, M,&g_Rio);
 		double searchRatio = 0.25;
 		double g_Rc =0.;
-		int n_eo = Bad_EO_death(NEIGHBOORHOOD,searchRatio,l,M,&g_Rc);
+		Bad_EO_death(NEIGHBOORHOOD,searchRatio,l,M,&g_Rc);
 
 		double Echange_from_neighboor = Echange_from_neighboors_death(M,l);
 #ifdef QUALITY_CANDY

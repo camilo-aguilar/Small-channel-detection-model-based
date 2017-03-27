@@ -4,14 +4,12 @@
 #include "allocate.h"
 #include "random.h"
 
-#pragma warning(disable : 4996)
-
 //#define DEF_COVARIANCE
 #undef DEF_COVARIANCE
 #define GAUSSIAN_BLUR
 //#undef GAUSSIAN_BLUR
 //#define EXPONETIAL_BLUR
-#undef EXPONETIAL_BLUR
+//#undef EXPONETIAL_BLUR
 
 #define MAX_CLASSES 15
 #define CLASSES 2

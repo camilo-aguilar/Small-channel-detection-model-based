@@ -16,6 +16,13 @@
 
 
 
+#if INCLUDE_OPENCV
+	#include "gui_functions.h"
+#endif
+
+
+
+
 
 double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols)
 {
@@ -150,13 +157,6 @@ int QuilityCandyInterface(unsigned char **yimg, double **channel_img, double **l
   int iter = mpp.iter_num; //1000000;//100000000;
   double T = mpp.T0;//KDW 1/10.0;
 
-   char a[30];
-
-   int  k = 3;
-
-
-	
-
 
    double *mu = (double *)malloc(MAX_K*sizeof(double));
    double *cov = (double *)malloc(MAX_K*sizeof(double));
@@ -192,17 +192,14 @@ MAIN
 int main( int argc , char** argv)
 {
 	printf(">>>>>>>>>>>>>>>>Start of the Program<<<<<<<<<<<<<\n");
-	struct TIFF_img input_img, input_gt_img, output_img, output_color_img, MBD_img;
+	struct TIFF_img input_img, input_gt_img, output_img, output_color_img;
 	unsigned char **yimg = NULL, **yfiltered, **laplacian, **lm_img;
 	double **lm, **beta_dimg[2], **channel_img;
 	char infileName[1024], outfileName[1024];
 	char segfileName[1024], outfilePrefix[1024];
 	char gtfileName[1024];
-	char win_name[256] = "input data";
-	char win_name2[256] = "output data";
+
 	FILE *fp;
-	//IplImage *image = 0, *image2 = 0; //NOTE
-	int height, width, channel=3;
 	int i, j, ii, jj, rows, cols;
 	double mu[CLASSES], mean, vari[CLASSES], variance, min, max;
 	int cnt[CLASSES];
@@ -217,7 +214,7 @@ int main( int argc , char** argv)
 	NeckDent *mp = NULL;
 	int np_num;
 	char filename[1024];
-	double stdev;
+	
 	//int syn_ch_gen = 0, gen_syn_img_en = 0, syn_num = SYN_CH_NUM;
 	//NeckDent_Syn syn_ch[SYN_CH_NUM];
 	double total_e[MAX_MPP_ITER_NUM+1];
@@ -242,80 +239,75 @@ int main( int argc , char** argv)
 	float PARAM_LAMBDA_l = 0;	            			//8	 Lambda_l		
 	float PARAM_LAMBDA_int = 0.005;		      			//9  Lambda_int
 	
-	int   PARAM_CHANNEL_TYPES = 0;               		//10 0:simple channel	1:necking only	2: denting only 3:necking and denting
+	int   PARAM_CHANNEL_TYPES = 1;               		//10 0:simple channel	1:necking only	2: denting only 3:necking and denting
 	
-	float PARAM_ERROR_THRESHOLD = 6;	      			//11 error_th	13
+	float PARAM_ERROR_THRESHOLD = 1;	      			//11 error_th	13
 	float PARAM_AMPLITUDE_THRESHOLD = 21.0;	      		//12 Amp_th 	
 	float PARAM_GAUSSIAN_TAU = 17;		      			//13 Gaussina_tau 	(RJMCMC)"20" (tau,lambda_a,error_th) = (25,27,14)
-	float PARAM_DECREASE_COEFFICIENT = 0.99999;   		//14 Decrease coeff = 0.999999
-	int   PARAM_ITERATIONS = 3000000;		      			//15 Iterations
-	float PARAM_BETTA_FOR_MPP = 2.7;	      			//16 Beta for MPP
-
-	INPUT_PARAMS inp; 
+	float PARAM_DECREASE_COEFFICIENT = 0.999999;   		//14 Decrease coeff = 0.999999
+	int   PARAM_ITERATIONS = 30000000;		      			//15 Iterations
+	float PARAM_BETTA_FOR_MPP = 10*2.7;	      			//16 Beta for MPP
 	
 	/* Parameter Parsing */
-	if(1)
+
+	if(argc < 2)
 	{
-		if(argc < 2)
-		{
-			printf("Error, only 2 arguemnts\n");
-			exit(1);
-		} 
-		
-		sprintf(infileName, "%s.tiff",argv[1]);
-		sprintf(segfileName, "%s_seg.tiff",argv[1]);
-		sprintf(gtfileName, "%s_gt.tiff",argv[1]);
-		sprintf(outfilePrefix, "%s",argv[1]);
-		
-		mpp.test = PARAM_TESTTYPE;							//2
-		mpp.optimization_type = PARAM_OPTIMIZATION_TYPE;	//3
-		mpp.fixed_param_num = PARAM_FIXED_PARAMETERS;		//4
-		mpp.alm = PARAM_LAMBDA_RJMCMC;
-		mpp.b_zero = mpp.alm;
-		mpp.T0 = PARAM_T0;
-		mpp.betampp = PARAM__BETA_MPP;
-		mpp.lambda_l = PARAM_LAMBDA_l;	// 0.12
-		mpp.lambda_int = PARAM_LAMBDA_int;
-		mpp.nd_type_num = PARAM_CHANNEL_TYPES;	// necking only = 1, 
-		mpp.error_th = PARAM_ERROR_THRESHOLD;
-		mpp.amp_th = PARAM_AMPLITUDE_THRESHOLD;
-		mpp.gaussian_tau = PARAM_GAUSSIAN_TAU;
-		mpp.de_coeff = PARAM_DECREASE_COEFFICIENT;
-		mpp.iter_num = PARAM_ITERATIONS; // override 
-		beta[0] = PARAM_BETTA_FOR_MPP;
-		beta[1] = PARAM_BETTA_FOR_MPP;
-	}
+		printf("Error, only 2 arguemnts\n");
+		exit(1);
+	} 
 
-	inp = parse_input_qc(argc,argv);
+	sprintf(infileName, "%s.tiff",argv[1]);
+	sprintf(segfileName, "%s_seg.tiff",argv[1]);
+	sprintf(gtfileName, "%s_gt.tiff",argv[1]);
+	sprintf(outfilePrefix, "%s",argv[1]);
 	
-	mpp.iter_num = inp.iterations;
-	mpp.gamma_d = inp.gamma_d;
-	mpp.w_eo = inp.w_eo;
-	mpp.w_f = inp.w_f;
-	mpp.w_s = inp.w_s;
-	mpp.w_d = inp.w_d;
-	mpp.w_io = inp.w_io;
-
-
-
-	printf("Iterations: %d\n ", mpp.iter_num);
-	printf("gamma_d: %f\n ", mpp.gamma_d);
-	printf("w_eo: %f\n ", mpp.w_eo);
-	printf("w_f: %f\n ", mpp.w_f);
-	printf("w_s: %f\n ", mpp.w_s);
-	printf("w_d: %f\n ", mpp.w_d);
-	printf("w_io: %f\n ", mpp.w_io);
-
-
-	mpp.hard_repulsion	= 4;	// 4(RJMCMC) 4
-	mpp.gaussian_tau	= 15;	// 6.(MBND) 20.(RJMCMC)  
+	mpp.test = PARAM_TESTTYPE;							//2
+	mpp.optimization_type = PARAM_OPTIMIZATION_TYPE;	//3
+	mpp.fixed_param_num = PARAM_FIXED_PARAMETERS;		//4
+	mpp.alm = PARAM_LAMBDA_RJMCMC;
+	mpp.b_zero = mpp.alm;
+	mpp.betampp = PARAM__BETA_MPP;
+	mpp.lambda_l = PARAM_LAMBDA_l;	// 0.12
+	mpp.lambda_int = PARAM_LAMBDA_int;
+	mpp.nd_type_num = PARAM_CHANNEL_TYPES;	// necking only = 1, 
+	
+	mpp.amp_th = PARAM_AMPLITUDE_THRESHOLD;
+	mpp.gaussian_tau = PARAM_GAUSSIAN_TAU;
 	
 	
-	mpp.widthmin		= 4;	// 6 6 (MBND) 9(RJMCMC)	8	9	9
-	mpp.widthmax		= 11;	// 10 12 (MBND) 14(RJMCMC)	14	18	14
-	mpp.lengthmin		= 4;	// 8 10 (MBND) 11(RJMCMC)	10	5	5 // should be smaller than 10
-	mpp.lengthmax		= 8;	// 20 30 (MBND) 34(RJMCMC)	32	25	32
+
+	mpp.alm = LAMBDA_RJMCMC;
+	mpp.b_zero = mpp.alm;
+	mpp.lambda_l = LAMBDA_L;	// 0.12
+	mpp.lambda_int = LAMBDA_INT;
+	mpp.nd_type_num = CHANNEL_TYPES;	// necking only = 1, 
+	mpp.gaussian_tau = GAUSSIAN_TAU;
+	mpp.betampp = BETA_MPP;
+	beta[0] = BETTA_FOR_MPP;
+	beta[1] = BETTA_FOR_MPP;
+
+
+	mpp.T0 				= INITIAL_T0;
+	mpp.iter_num 		= ITERATIONS;
+	mpp.gamma_d  		= GAMMA_D;	
+	mpp.w_f 			= W_F;
+	mpp.w_s 			= W_S;
+	mpp.w_d 			= W_D;
+	mpp.w_io 			= W_IO;
+	mpp.w_eo 			= W_EO;
+	mpp.error_th 		= ERROR_TH;
+	mpp.widthmin		= W_MIN;	
+	mpp.widthmax		= W_MAX;	
+	mpp.lengthmin		= L_MIN;	
+	mpp.lengthmax		= L_MAX;	
+	mpp.de_coeff 		= DECREASE_COEFFICIENT;
+
 	
+	
+
+
+	mpp.hard_repulsion	= 4;	
+	mpp.gaussian_tau	= 15;	
 	//Denting and Necking Channels
 	mpp.symmetry_th		= 0;	// 8
 	mpp.lambda_s		= 0;	//Symmetry Potential
@@ -505,7 +497,21 @@ int main( int argc , char** argv)
 			
 
 			enable_blur = 0;
-			emmpm(yimg, xt, beta, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
+			//#if PRE_SEG_EM_MPM
+			//	emmpm(yimg, xt, beta, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
+			//#else
+				for(i=0; i<rows;i++)
+					for(j=0; j<cols; j++)
+						if(yimg[i][j]> 150)
+							xt[i][j] = 1;
+						else
+							xt[i][j] = 0;
+			//#endif
+			sprintf(segfileName, "%s_seg.tiff",outfilePrefix);
+			/* TO REMOVE!!! =================================================================================================*/
+
+
+
 			end_time=clock();
 			printf("end time is:%1.0f ms\n",(double)(end_time)/CLOCKS_PER_SEC*100);
 			printf("Running time is:%1.0f ms\n",(double)(end_time-start_time)/CLOCKS_PER_SEC*100);
@@ -522,7 +528,8 @@ int main( int argc , char** argv)
 				exit(1);
 			}
 			fclose(fp);
-		} 
+		}
+
 	}
 	
 	for(i=0; i < input_img.height; i++)
@@ -586,7 +593,8 @@ int main( int argc , char** argv)
 		}
 	}
 
-	#define BIRTH_MAP_R		3
+	#define BIRTH_MAP_R		1
+
 
 	/*Create Birthmap*/
 	if(1)
@@ -607,7 +615,7 @@ int main( int argc , char** argv)
 			{
 				if((xt[i][j]==0)&&((xt[i+1][j]==1)||
 				   (xt[i-1][j]==1)||(xt[i][j+1]==1)||
-				   (xt[i][j-1]==1)))
+				   (xt[i][j-1]==1) ))
 				{
 					for (ii=-BIRTH_MAP_R; ii<=BIRTH_MAP_R; ii++)
 					{
@@ -689,26 +697,25 @@ int main( int argc , char** argv)
 		np_num = nd_mpp_multiple_birth_n_death(yfiltered, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows);
 	}
 	else
-	{// if(mpp.optimization_type == 2){ // RJMCMC Quility Candy model
+	{ // if(mpp.optimization_type == 2){ // RJMCMC Quility Candy model
 		np_num = QuilityCandyInterface(yfiltered, channel_img, lm, mu, vari, variance, &mp, mpp, total_e, mp_num, cols, rows);
 	}
 
 	
 	
-	
-	printf("\nCalculating New Betas \n\n");
+	//printf("\nCalculating New Betas \n\n");
 	beta[0] = 0.0;
 
-	calculate_betaimg(beta_dimg, beta, mp, np_num, mpp, cols, rows); // if mpp.gaussian_tau big, beta image channel become narrow
+	//calculate_betaimg(beta_dimg, beta, mp, np_num, mpp, cols, rows); // if mpp.gaussian_tau big, beta image channel become narrow
 
 	
-	double_to_uchar(beta_dimg[0], lm_img, cols, rows);
+	//double_to_uchar(beta_dimg[0], lm_img, cols, rows);
 	
 
-	printf("EM/MPM with Adaptive Betas\n");
+	//printf("EM/MPM with Adaptive Betas\n");
 
-	enable_blur = 0;
-	emmpm_betaimg(yimg, xt, beta_dimg, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
+	//enable_blur = 0;
+	//emmpm_betaimg(yimg, xt, beta_dimg, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
 
 	
 	
@@ -821,7 +828,7 @@ int main( int argc , char** argv)
 	
 	
 	/* Save output Image and Write Parameters to a text file*/
-	if(1)
+	if(0)
 	{
 		for (i=0; i<rows; i++)
 			for (j=0; j<cols; j++)
@@ -916,7 +923,14 @@ int main( int argc , char** argv)
 		}
 		
 
-		save_channel_image(channel_img, yimg,input_img.height, input_img.width, outfilePrefix);
+
+		char parameter_values[100];
+		float my_width = W_MAX;
+		float my_length = L_MAX;
+		sprintf(parameter_values, "gamma_%.2f_wf_%.2f_ws_%.2f_wd_%.2f_weo_%.2f_wio_%.2f_wid_%.2f_len_%.2f_error_th_%.2f_iter_%d_",mpp.gamma_d, mpp.w_f , mpp.w_s, mpp.w_d, mpp.w_eo, mpp.w_io,my_width, my_length, mpp.error_th,mpp.iter_num);
+
+
+		save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values);
 
 
 		free(mp);
@@ -1000,12 +1014,14 @@ void difference_image(unsigned char **img1, unsigned char  **img2,int height, in
 	  fclose ( fp );
 }
 
+	/* Very Important, it saves the image INVERTED*/
 void save_channel_image(double **channel_img, unsigned char  **img,int height, int width, char* name)
 {
+
 	int i=0,j=0;
 	struct TIFF_img output_tiff;
 	FILE *fp=NULL;
-	char aa[40];
+	char aa[200];
 	strcpy(aa,name);
 	get_TIFF ( &output_tiff, height, width, 'c' );
 	
@@ -1031,7 +1047,7 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 		}
 	}
 	
-	strcat(aa,"_w_channels.tiff");
+	strcat(aa,"_results.tiff");
 	/* open image file */
 	if ( ( fp = fopen ( aa, "wb" ) ) == NULL ) {
 	    fprintf ( stderr, "cannot open file tif file\n");

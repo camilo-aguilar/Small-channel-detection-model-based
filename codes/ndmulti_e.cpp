@@ -394,7 +394,6 @@ double avg_Gaussian(unsigned char **y, int cols, int rows, double mean0, double 
 //#define DELTA_OFFSET	1.0
 
 #define GAUSS_TH -0.2 //-0.2
-#define SYM_TH	0.09
 /***********************************************************************/
 //
 //	n1n1n1n1n1n1n1n1n1n1n1
@@ -570,7 +569,7 @@ double avg_t_test(unsigned char **y, int cols, int rows, double mean0, double va
 		//Bhatta = (sum_ch-sum_nch)*(sum_ch-sum_nch)/(sqrt(sum_ch2+sum_nch2));
 		t_test1 = fabs(sum_ch-sum_nch)/(sqrt(sum_ch2/(double)num_ch+sum_nch2/(double)num_nch));
 		//t_test2 = fabs(sum_n1ch-sum_n2ch)/(sqrt(sum_n1ch2/(double)num_n1ch+sum_n2ch2/(double)num_n2ch));
-		t_test = t_test1/max(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
+		t_test = t_test1/fmax(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
 
 		if ((sum_nch>sum_ch)&&(sum_all2>150))
 		{
@@ -825,7 +824,7 @@ double avg_t_test_neck(unsigned char **y, int cols, int rows, double mean0, doub
 		dj_sin_t = dj*sin_t;
 		dj_cos_t = dj*cos_t;
 		for(di = -w_5, i = 0; di<=w_5; di += STEP_DY, i++){
-			if(abs(di)<=CH_E_W){
+			if(fabs(di)<=CH_E_W){
 				flag = 0;
 				pt.x = cx + dj_cos_t + di_sint[i];
 				pt.y = cy + dj_sin_t - di_cost[i];
@@ -934,7 +933,7 @@ double avg_t_test_neck(unsigned char **y, int cols, int rows, double mean0, doub
 	if(*num !=0){
 		//Bhatta = (sum_ch-sum_nch)*(sum_ch-sum_nch)/(sqrt(sum_ch2+sum_nch2));
 		t_test1 = fabs(sum_ch-sum_nch)/(sqrt(sum_ch2/(double)num_ch+sum_nch2/(double)num_nch));
-		t_test = t_test1/max(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
+		t_test = t_test1/fmax(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
 		if ((sum_nch>sum_ch)&&(sum_all2>150))
 		{
 			if(t_test < error_th)
@@ -1198,7 +1197,7 @@ double avg_t_test_dent(unsigned char **y, int cols, int rows, double mean0, doub
 	dj_sin_t = dj*sin_t;
 	dj_cos_t = dj*cos_t;
 	for(di = -w_5, i = 0; di<=w_5; di += STEP_DY, i++){
-		if(abs(di)<=CH_E_W){
+		if(fabs(di)<=CH_E_W){
 			flag = 0;
 			pt.x = cx + dj_cos_t + di_sint[i];
 			pt.y = cy + dj_sin_t - di_cost[i];
@@ -1324,7 +1323,7 @@ double avg_t_test_dent(unsigned char **y, int cols, int rows, double mean0, doub
 	if(*num !=0){
 		//Bhatta = (sum_ch-sum_nch)*(sum_ch-sum_nch)/(sqrt(sum_ch2+sum_nch2));
 		t_test1 = fabs(sum_ch-sum_nch)/(sqrt(sum_ch2/(double)num_ch+sum_nch2/(double)num_nch));
-		t_test = t_test1/max(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
+		t_test = t_test1/fmax(SYM_TH,sum_s/sum_all)*SYM_TH;//*sqrt(sum_all2)
 		
 		t_test_ch1 = fabs(sum_1ch-sum_n1ch)/(sqrt(sum_1ch2/(double)num_1ch+sum_n1ch2/(double)num_n1ch));
 		t_test_ch2 = fabs(sum_3ch-sum_n2ch)/(sqrt(sum_3ch2/(double)num_3ch+sum_n2ch2/(double)num_n2ch));
@@ -3311,7 +3310,7 @@ void Gaussian_beta(double **beta_img[], double *beta, int cols, int rows, NeckDe
 					y2 = (di)*(di)*mt_ww;
 				else
 					y2 = ((dj+w_n-l_5)*(dj+w_n-l_5)+di*di)*mt_ww;
-				dtmp = f(ma, beta[0], y2);//*1.1-0.1; // *1.1-0.1 -> to make more zeros
+				dtmp = f_exp(ma, beta[0], y2);//*1.1-0.1; // *1.1-0.1 -> to make more zeros
 				if (dtmp<beta_img[0][i][j])
 					beta_img[0][i][j] = dtmp;
 			}
@@ -3337,7 +3336,7 @@ double intersection_area(DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4,
 	w2 = dist(c, a);
 	num2 = ((int)l2)*((int)w2);
 	num = ((int)l)*((int)w);
-	num = min(num, num2);
+	num = fmin(num, num2);
 
 	in_num = 0;
 	for(di = 0.; di<=w; di += 1.0){
@@ -3394,12 +3393,12 @@ int C_prior (NeckDent *mp, int k, int np_num, double epsilon, double **inter_e)
 					epj2.y = (mp[k].r[1].y+mp[k].r[3].y)/2;
 					d1 = dist(epi1,epj1);
 					d2 = dist(epi1,epj2);
-					d1 = min(d1,d2);
+					d1 = fmin(d1,d2);
 					d3 = dist(epi2,epj1);
 					d4 = dist(epi2,epj2);
-					d2 = min(d3,d4);
-					d1 = min(d1,d2);
-					theta_diff = min(fabs(mp[i].theta-mp[k].theta),M_PI-fabs(mp[i].theta-mp[k].theta));
+					d2 = fmin(d3,d4);
+					d1 = fmin(d1,d2);
+					theta_diff = fmin(fabs(mp[i].theta-mp[k].theta),M_PI-fabs(mp[i].theta-mp[k].theta));
 					inter_e[k][i] = (exp(TAU_INT*dtmp2/(theta_diff+ALPHA_THETA))-1)+LAMBDA_CONNECTION*d1;///norm;
 				}
 				else
@@ -3735,7 +3734,7 @@ int jmp_birth(unsigned char **yimg, double **lm, unsigned char **MP_exist, NeckD
 	total_energy =  mpp.alpha*mp[*np_num].single_E+mpp.lambda_int*mp[*np_num].multiple_E;
 	e_ratio = exp(-(beta*total_energy));
 	Qb = bd_ratio/((*np_num)+1);
-	G_ratio = min(1, e_ratio*Qb);
+	G_ratio = fmin(1, e_ratio*Qb);
 
 	a = random2();
 	if (a < G_ratio)	// accept
@@ -3774,7 +3773,7 @@ int jmp_death(unsigned char **yimg, unsigned char **MP_exist, NeckDent *mp, int 
 	total_energy =  mpp.alpha*mp[k].single_E + mpp.lambda_int*mp[k].multiple_E;
 	e_ratio = exp(beta*total_energy);
 	Qd = db_ratio*(*np_num);
-	G_ratio = min(1, e_ratio*Qd);
+	G_ratio = fmin(1, e_ratio*Qd);
 
 	a = random2();
 
@@ -3832,7 +3831,7 @@ int jmp_translation(unsigned char **yimg, NeckDent *mp,int np_num, double beta, 
 			C_prior (mp, np_num-1, np_num, epsilon, inter_e);
 			total_energy = mpp.alpha*(mp[np_num-1].single_E-tmp_mp.single_E)+mpp.lambda_int*(mp[np_num-1].multiple_E-tmp_mp.multiple_E);
 			e_ratio = exp(-beta*total_energy);
-			G_ratio = min(1, e_ratio);
+			G_ratio = fmin(1, e_ratio);
 
 			a = random2();
 
@@ -3899,7 +3898,7 @@ int jmp_dilation(unsigned char **yimg, NeckDent *mp,int np_num, double beta, dou
 			C_prior (mp, np_num-1, np_num, epsilon, inter_e);
 			total_energy = mpp.alpha*(mp[np_num-1].single_E-tmp_mp.single_E)+mpp.lambda_int*(mp[np_num-1].multiple_E-tmp_mp.multiple_E);
 			e_ratio = exp(-beta*total_energy);
-			G_ratio = min(1, e_ratio);
+			G_ratio = fmin(1, e_ratio);
 
 
 			a = random2();
@@ -3975,7 +3974,7 @@ int jmp_rotation(unsigned char **yimg, NeckDent *mp,int np_num, double beta, dou
 		C_prior (mp, np_num-1, np_num, epsilon, inter_e);
 		total_energy = mpp.alpha*(mp[np_num-1].single_E-tmp_mp.single_E)+mpp.lambda_int*(mp[np_num-1].multiple_E-tmp_mp.multiple_E);
 		e_ratio = exp(-beta*total_energy);
-		G_ratio = min(1, e_ratio);
+		G_ratio = fmin(1, e_ratio);
 	
 		a = random2();
 
@@ -4273,7 +4272,7 @@ int jmp_switch(unsigned char **yimg, NeckDent *mp,int np_num, double beta, doubl
 	C_prior (mp, np_num-1, np_num, epsilon, inter_e);
 	total_energy = mpp.alpha*(mp[np_num-1].single_E-tmp_mp.single_E)+mpp.lambda_int*(mp[np_num-1].multiple_E-tmp_mp.multiple_E);
 	e_ratio = exp(-beta*total_energy);
-	G_ratio = min(1, occur_rate*e_ratio);
+	G_ratio = fmin(1, occur_rate*e_ratio);
 
 	a = random2();
 
@@ -4338,8 +4337,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			MP_exist[i][j] = 0;
 		}
 		
-		
-		
+
 	
 	for(i = 0; i < MAX_MKPNT_NUM; i++){
 		mp[i].state = STATE_NON_EXIST;
@@ -4351,11 +4349,13 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		}
 	np_num = 0;
 
+
+	
 	for (iter = 1;iter <= mpp.iter_num; iter++)
 	{ //MAX_MPP_ITER_NUM
 		birth_rate = delta*mpp.b_zero;
 		printf("iter=%d\n",iter);
-		
+
 		//----------------------- Birth -------------------------//
 		for (i = 5;i<rows-5;i++){
 			for (j = 5;j<cols-5;j++){

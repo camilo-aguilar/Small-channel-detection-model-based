@@ -6,48 +6,21 @@
 #include "neck.h"
 
 
+
+#define DEBUG_CAMILO 0
+#define INCLUDE_OPENCV_END 1
+
+#if INCLUDE_OPENCV
+	#include "gui_functions.h"
+#endif
+
+#if INCLUDE_OPENCV_END
+	#include "gui_functions.h"
+#endif
+
+
 using namespace std;
 
-void DEBUG_IMAGE(char* name, struct TIFF_img inter_img_mrf)
-{
-	FILE *fp;
-			/* open image file */
-			if ( ( fp = fopen ( name, "wb" ) ) == NULL ) 
-			{
-				fprintf ( stderr, "cannot open file image.tif\n");
-				exit ( 1 );
-			}
-
-			/* write image */
-			if ( write_TIFF ( fp, &inter_img_mrf ) ) 
-			{
-			fprintf ( stderr, "error writing TIFF file \n" );
-			exit ( 1 );
-			}
-
-			/* close image file */
-			fclose ( fp );
-}
-
-
-void DEBUG_ARRAY(char* name, double** my_image, int height, int width)
-{	
-	
-	int i = 0, j=0;
-	struct TIFF_img inter_img_mrf;
-	get_TIFF ( &inter_img_mrf, height, width, 'g' );
-	int pixel;
-	for(i = 0; i < height; i++)
-	{
-		for(j=0; j< width; j++)
-		{
-			pixel = (int32_t)(my_image[i][j]);
-			inter_img_mrf.mono[i][j] = pixel;
-			
-		}
-	}	
-	DEBUG_IMAGE(name, inter_img_mrf);
-}
 
 
 
@@ -94,7 +67,7 @@ void drawSegfromfile(Candy *C)
 	}
 }
 
-
+/* Draws a line between (x1,y1) and (x2,y2) in img[y][x] = color */
 void line_back(int x1, int y1, int x2, int y2, int color, double **img)
 {
     int dx, dy, inx, iny, e;
@@ -136,7 +109,7 @@ void line_back(int x1, int y1, int x2, int y2, int color, double **img)
 }
 
 
-
+/*Draws all the lines in the Candy so far*/
 void DrawLine_back(double **img,Candy *C)
 {
 	int n_f = C->n_f;
@@ -179,11 +152,12 @@ void DrawLine_back(double **img,Candy *C)
 
 Candy* CandyInit(MPP_Parameters mpp)
 {
+	double Constant_For_Normalizing_Lambda = (double)((L_MAX-L_MIN)*(W_MAX-W_MIN)*(THETA_MAX-THETA_MIN));
 	Candy *C;
 	C = (Candy *)malloc(sizeof(Candy));
 
 	C->beta = 1;					//Beta
-	C->lambda = 10;					//Lambda
+	C->lambda = 1.0/Constant_For_Normalizing_Lambda;					//Lambda
 
 	C->link_d = LinkedListInit();	//Double Seg Links
 	C->link_f = LinkedListInit();	//Free Seg Links
@@ -199,14 +173,14 @@ Candy* CandyInit(MPP_Parameters mpp)
 	C->n_f = 0;						//Number of Free Segments
 	C->n_s = 0;						//Number of Single Segments
 
-	C->p_f_b = 0.5; 				/* Free Segment Birth */
-	C->p_f_d = 0.5; 				/* Free Segment Death */
+	C->p_f_b = P_BIRTH_F; 				/* Free Segment Birth */
+	C->p_f_d = 1-C->p_f_b; 				/* Free Segment Death */
 	
-	C->p_s_b = 0.5; 				/* Single Segment Birth */
-	C->p_s_d = 0.5; 				/* Single Segment Death */
+	C->p_s_b = P_BIRTH_S; 				/* Single Segment Birth */
+	C->p_s_d = 1 - C->p_s_b; 				/* Single Segment Death */
 	
-	C->p_d_b = 0.5; 				/* Double Segment Birth */
-	C->p_d_d = 0.5; 				/* Double Segment Death */
+	C->p_d_b = P_BIRTH_D; 				/* Double Segment Birth */
+	C->p_d_d = 1- C->p_d_b; 				/* Double Segment Death */
 
 
 	C->gamma_d = mpp.gamma_d; 		//
@@ -217,20 +191,20 @@ Candy* CandyInit(MPP_Parameters mpp)
 	C->w_d = mpp.w_d;   			/* Weight Double Seg */
 	C->w_io = mpp.w_io; 			/* Weight Internal Bad Orientation */
 
-	C->p_b_d = 0.6;  				/* Birth and Death Step */
-	C->p_t = 0.2;     				/* Translation Step */
-	C->p_c = 0.2;     				/* Connection Step */
+	C->p_b_d =  P_BIRTH_DEATH_STEP;  				/* Birth and Death Step */
+	C->p_t =    P_TRANSLATION_STEP;     				/* Translation Step */
+	C->p_c =    P_CONNECTION_STEP;     				/* Connection Step */
 
-	C->p_c_CtoF = 0.3; 				/* Connected to Free */
-	C->p_c_FtoC = 0.7; 				/* Free to Connected */
+	C->p_c_CtoF = CONNETECTED_TO_FREE; 				/* Connected to Free */
+	C->p_c_FtoC = FREE_TO_CONNECTED; 				/* Free to Connected */
 
-	C->p_t_f = 0.5; 				/* Transition Free Seg*/
-	C->p_t_s = 0.5; 				/* Transition Single Seg*/
-	C->p_t_d = 0.3; 				/* Transition Double Seg*/
-
-	C->p_f = 0.6; 					/* Free (B&D) */
-	C->p_s = 0.2;  					/* Single */
-	C->p_d = 0.2;  					/*Double */
+	C->p_t_f = TRANSITION_FREE_SEGMENT; 				/* Transition Free Seg*/
+	C->p_t_s = TRANSITION_SINGLE_SEGMENT; 				/* Transition Single Seg*/
+	C->p_t_d = TRANSITION_DOUBLE_SEGMENT; 				/* Transition Double Seg*/
+ 
+	C->p_f = P_PICK_F; 					/* Free (B&D) */
+	C->p_s = P_PICK_S ;  					/* Single */
+	C->p_d = P_PICK_D ;  					/*Double */
 
 	return C;
 }
@@ -434,16 +408,16 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 
 	int mp_num = 0;
 
-	struct TIFF_img inter_img_mrf;
-	FILE *fp;
 
-	char name_buff2[2000];
+
+	struct TIFF_img inter_img_mrf;
+
 	get_TIFF ( &inter_img_mrf, height, width, 'g' );
 
 	Candy *C;
 	C = CandyInit(mpp);
 
-	double T = 1.0;
+	double T = 0;
 
 	int **index_matrix = (int **)get_img(2,patch_len*patch_len,sizeof(int));
 	int **indexmask=(int **)get_img(patch_len,patch_len,sizeof(int));
@@ -500,219 +474,164 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 			}
 		}
 		
-		/* Write Image for debugging */
-		if(0)
-		{	
-			DEBUG_IMAGE("original_seg.tiff", inter_img_mrf);
-
-		}
 	 }
 	
 	int test = 0;
-	time_t t;
 	clock_t start_time=clock();
 
 	T = mpp.T0;
 	printf("Start RJMCMC\n");
 	for (int i = 0;i<mpp.iter_num;i++)
 	{
+		#if INCLUDE_OPENCV
+			if(C->n_f + C->n_s + C->n_d)
+				if(i%(mpp.iter_num/100)==0)
+				{					
+					display_image_double(input_img, height, width, C);
+				}
+		#endif
+
 		if(i > 0 && i % (mpp.iter_num/10) == 0) 
-			printf(" %2.2f of Iterations Complete \n", (float)i/(float)mpp.iter_num * 100.00);
+		{
+			printf(" %2.2f Percent of Iterations Completed \n", (float)i/(float)mpp.iter_num * 100.00);
+		}
 
 		double r = random2();
-		T = T/(mpp.de_coeff); //KDW
+		
+		
+		if((C->n_f + C->n_s + C->n_d)==0)
+		{
+			r = 0;
+		}
 
 		if (r < C->p_b_d)   //birth and death step
 		{
 			double rr = random2();
 			double rrr = random2();
+
+			if(C->n_f==0)
+			{
+				rr = 0;
+				rrr=0;
+			}
+
 			if (rr < C->p_f)  // free segment
 			{
 				if (rrr < C->p_f_b)
 				{
+					#if DEBUG_CAMILO
+						printf("Add Free Seg: %d \n", i);
+					#endif
 				
-					AddFreeSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,T,test,patch,patch_len, Matrix, prior_pen1, prior_pen2,dilated_img);
+					AddFreeSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,1.0/T,test,patch,patch_len, Matrix, prior_pen1, prior_pen2,dilated_img);
 					test++;
 				}
 				else
 				{
-					KillFreeSeg(C,input_img,height,width,T);
+					#if DEBUG_CAMILO
+						printf("Kill Free Seg: %d \n", i);
+					#endif
+
+					KillFreeSeg(C,input_img,height,width,1.0/T);
 				}
 			}
 			else if (rr < C->p_s+C->p_f)  //single segment
 			{
 				if (rrr < C->p_s_b)
 				{
-					//AddSingleSeg_allends(C,input_img,height,width,T);
-					AddSingleSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,T,patch,patch_len, Matrix, prior_pen1, prior_pen2);
+					#if DEBUG_CAMILO
+						printf("Add Single Seg: %d\n", i);
+					#endif
+
+					AddSingleSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,1.0/T,patch,patch_len, Matrix, prior_pen1, prior_pen2);
 				}
 				else
 				{
-					//KillSingleSeg_allends(C,input_img,height,width,T);
-					KillSingleSeg(C,input_img,height,width,T);
+					#if DEBUG_CAMILO
+						printf("Kill Single Seg: %d\n", i);
+					#endif
+					//KillSingleSeg_allends(C,input_img,height,width,1.0/T);
+					KillSingleSeg(C,input_img,height,width,1.0/T);
 				}
 			}
 			else
 			{
 				if (rrr < C->p_d_b)
 				{
-					//AdddoubleSeg_allends(C,input_img,height,width,T);
-					AdddoubleSeg(C,input_img,lm,output_seg,img_mpp_l,img_seg_l,height,width,T,patch,patch_len, Matrix, prior_pen1, prior_pen2,0);
+					#if DEBUG_CAMILO
+						printf("Add Double Seg: %d\n", i);
+					#endif
+					//AdddoubleSeg_allends(C,input_img,height,width,1.0/T);
+					AdddoubleSeg(C,input_img,lm,output_seg,img_mpp_l,img_seg_l,height,width,1.0/T,patch,patch_len, Matrix, prior_pen1, prior_pen2,0);
 				}
 				else
 				{
-					//KillDoubleSeg_allends(C,input_img,height,width,T);
-					KillDoubleSeg(C,input_img,height,width,T);
+					#if DEBUG_CAMILO
+						printf("Kill Double Seg: %d\n", i);
+					#endif
+					//KillDoubleSeg_allends(C,input_img,height,width,1.0/T);
+					KillDoubleSeg(C,input_img,height,width,1.0/T);
 				}
 			}
 		}
 		else if (r <C->p_b_d +C->p_t)   //transition step
 		{
+			#if DEBUG_CAMILO
+				printf("Translation: %d\n", i);
+			#endif
+
 			double rr = random2();
 			double rrr = random2();
 			if (rr < C->p_t_f)
 			{
 				if (rrr < 0.2)
-					FreeSeg_length_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					FreeSeg_length_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
 				else if (rrr< 0.4)
-					FreeSeg_theta_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					FreeSeg_theta_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
 				else  if (rrr< 0.6) //KDW 
-					FreeSeg_width_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					FreeSeg_width_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
 				else  if (rrr< 0.8)  //KDW
-					FreeSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					FreeSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
 				else //KDW
-					FreeSeg_center_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					FreeSeg_center_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
 
 			}
 			else if (rr < C->p_t_s+C->p_t_f)
 			{
-				 SingleSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				 SingleSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
 
 			}
 			else  // no disconnect & move
 			{
-				 SingleDoubleSeg_Connection_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				 SingleDoubleSeg_Connection_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
 				 
 			}
 		}
 		else   //connetion and separation step
 		{
+
 			double rr = random2();
 			if (rr < C->p_c_FtoC)
 			{
-				Conncet_freeEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,T);
+				Conncet_freeEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,1.0/T);
 			}
 			else
 			{
-				Seperate_connectedEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,T);
+				Seperate_connectedEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,1.0/T);
 			}
 
 		}
 
-		
-		
-		//DELETED PARTS
-		if (i!= 0 && i % 1000000 == 0 && 0)
-		{
-			printf("connections %d, neighbors %d\n",C->connection_n,C->neighbor_n);
-			int pixel,pixel2;
-
-			writeC(C,i);
-			DrawLine_back(output_img,C);
-			DrawLine_Seg(tmp_img,C,height,width,mu,cov,patch,patch_len);	
-
-			for ( int ii = 0; ii < height; ii++ )
-			{
-				for (int jj = 0; jj < width; jj++ ) 
-				{
-					dilated_img[ii][jj] = 0;
-				}
-			}
-
-			dilation(output_seg,dilated_img,width,height);
-
-
-			FILE *fp;
-			struct TIFF_img I_out,I_out_seg;
-			get_TIFF ( &I_out, height, width, 'g' );
-			get_TIFF(&I_out_seg,height,width, 'g');
-
-		  for ( int ii = 0; ii < height; ii++ )
-			for (int jj = 0; jj < width; jj++ ) 
-			{
-				pixel = (int)output_img[ii][jj];
-			 	pixel2 = (int)output_seg[ii][jj]*256/3;
-			if(pixel>255) {
-				 I_out.mono[ii][jj] = 255;
-				}
-			else {
-				if(pixel<128) I_out.mono[ii][jj] = (unsigned char)input_img[ii][jj]; //KDW
-				else I_out.mono[ii][jj] = pixel;
-			}
-			if(pixel2>255) {
-				 I_out_seg.mono[ii][jj] = 255;
-				}
-			else {
-			 if(pixel2<0) I_out_seg.mono[ii][jj] = 0;
-			 else I_out_seg.mono[ii][jj] = pixel2;
-			}
-			  }
-				char a[360],aa[360];
-				sprintf(a,"test_out%d_all_seg_520_HP_after_mpp_and_seg_new_offset1_t_%f_%f.tiff",i,PEN_1,PEN_2);
-				sprintf(aa,"seg_out%d_all_seg_520_HP_after_mpp_and_seg_new_offset%f_t_%f_%f.tiff",i,SEG_OFFSET,PEN_1,PEN_2);
-				/* open image file */
-				if ( ( fp = fopen ( a, "wb" ) ) == NULL ) {
-				fprintf ( stderr, "cannot open file MBD_img.tif\n");
-				exit ( 1 );
-			  }
-
-				/* write image */
-				if ( write_TIFF ( fp, &I_out ) ) {
-				fprintf ( stderr, "error writing TIFF file" );
-				exit ( 1 );
-			  }
-
-				/* close image file */
-				fclose ( fp );
-				if ( ( fp = fopen ( aa, "wb" ) ) == NULL ) {
-				fprintf ( stderr, "cannot open file MBD_img.tif\n");
-				exit ( 1 );
-			  }
-			  /* write image */
-			  if ( write_TIFF ( fp, &I_out_seg ) ) {
-				fprintf ( stderr, "error writing TIFF file" );
-				exit ( 1 );
-			  }
-
-			  /* close image file */
-			  fclose ( fp );
-			  free_TIFF ( &(I_out) );
-			  free_TIFF ( &(I_out_seg) );
-
-		  for ( int ii = 0; ii < height; ii++ )
-			for (int jj = 0; jj < width; jj++ ) 
-				{
-					output_img[ii][jj] = 0;
-					tmp_img[ii][jj] = 0;
-			}
-			//update the segmentation
-
-			printf("iter = %d\n",i / 1000000);
-		  printf("free=%d,single=%d,double=%d\n",C->n_f,C->n_s,C->n_d);
-		}
-
-		
-		
-		
-		if(i / 1000000 == 20)
-		{
-			clock_t end_time=clock();
-			cout<< "Running time is: "<<static_cast<double>(end_time-start_time)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
-
-		}
+		T = T*(mpp.de_coeff); 
 
 	}
 	
+
+	#if INCLUDE_OPENCV_END
+	display_image_double(input_img, height, width, C);
+	#endif
+
+
 	clock_t end_time=clock();
 	cout<< "Running time is: "<<static_cast<double>(end_time-start_time)/CLOCKS_PER_SEC*1000<<"ms"<<endl;
 	
@@ -1670,34 +1589,49 @@ int count_all_ends(Candy *M, site *end, lineObj **obj)
 	return num;
 
 }
+
+/* Counts the Number of "Free" ends found so far in list link*/
 void count_all_ends_in_link(LinkedList link, int n, site *end, int *num)
 {
 	Node *p = link;
 	int found,j;
 	site endx;
 
+
 	for (int i = 0;i<n;i++)
 	{
+		/*Count one one side*/
 		p= p->next;
 		endx = p->index->enda;
 		found =0;
 		for(j=0; j<(*num); j++)
-			if((endx.x == end[j].x)&&(endx.y == end[j].y)) found = 1;
-		if(!found){
+		{
+			if((endx.x == end[j].x)&&(endx.y == end[j].y))
+				found = 1;
+		}
+		if(!found)
+		{
 			end[j] = endx;
 			(*num)++;
 		}
+		/*Count one side b*/
 		endx = p->index->endb;
 		found =0;
 		for(j=0; j<(*num); j++)
-			if((endx.x == end[j].x)&&(endx.y == end[j].y)) found = 1;
-		if(!found){
+		{
+			if((endx.x == end[j].x)&&(endx.y == end[j].y))
+				found = 1;
+		}
+		if(!found)
+		{
 			end[j] = endx;
 			(*num)++;
 		}
 	}
 
 }
+
+/* Counts the Number of "Free" ends found so far*/
 int count_all_ends(Candy *M, site *end)
 {
 	int num=0;

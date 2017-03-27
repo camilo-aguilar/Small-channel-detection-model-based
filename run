@@ -1,11 +1,11 @@
 #!/bin/bash
 
-rm ChannelMPP.exe
+rm ChannelMPP
 echo Compiling
 cd codes
-rm ChannelMPP.exe
+rm ChannelMPP
 make
-cp ChannelMPP.exe ../
+cp ChannelMPP ../
 cd ..
-./ChannelMPP.exe cracked -n 3000000
+./ChannelMPP cracked_inv 
 

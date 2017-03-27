@@ -75,7 +75,7 @@
 #define NECK_DISCON_TH	-0.08
 #define DENT_DISCON_TH	2 //-0.07
 
-#define f(a, b, y2) (a)*(1-exp(y2))+(b)
+#define f_exp(a, b, y2) (a)*(1-exp(y2))+(b)
 
 typedef enum
 {

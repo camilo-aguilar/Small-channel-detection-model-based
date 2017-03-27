@@ -65,7 +65,7 @@ INPUT_PARAMS parse_input_qc(int argc,char** argv);
 /****************************************************
  *				QUALITY CANDY RJMCMC PARAMETERS		* 
  ****************************************************/
-#define ITERATIONS 				 	 	  1000000
+#define ITERATIONS 				 	 	  10000000
 
 #define INITIAL_T0 				 	  	  0.1
 

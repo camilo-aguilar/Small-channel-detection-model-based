@@ -16,7 +16,7 @@ INPUT_PARAMS parse_input_qc(int argc,char** argv)
 	
 
 	inp.iterations = 3000000; //	inp.iterations = 3000000;
-  	inp.gamma_d = 34; //inp.gamma_d/
+  	inp.gamma_d = 1000; //inp.gamma_d/
   	inp.w_eo = 8;//1 inp.w_eo
   	inp.w_f = 6;//1 inp.w_f
   	inp.w_s = -10;//1 inp.w_s

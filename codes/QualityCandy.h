@@ -8,21 +8,15 @@
 #include "math.h"
 #include "util.h" //KDW
 #include "ndmulti_e.h" //KDW
+#include "Parameters.h"
+
+
 
 #define QUALITY_CANDY
-#define EN_NEW_SEG_AT_NON_FREE_END
+
 #define MAX_CONNECTION_NUM  30
 #define MAX_NEAR_NUM		                30
-#define _PI					3.141592654
 
-
-#define L_MAX			10 //11KDW 30 		//10
-#define L_MIN			6 //KDW 10.0//8.0
-#define W_MIN			6 //KDW 4
-#define W_MAX			13 //KDW 9
-
-#define THETA_MIN			 (0.0)
-#define THETA_MAX			(_PI)
 #define DELTA_MAX		0//0.4 //KDW 0.0
 #define PARRALLEL_RANGE  -1.0 //_PI/40
 #define TAU_MAX			_PI/4.0
@@ -91,6 +85,11 @@ typedef struct lineObj
 
 	double dataterm;
 	double engergy_for_transition;
+
+	double mean_ch;
+	double mean_non_ch;
+	double std_ch;
+	double std_non_ch;
 
 }lineObj;
 

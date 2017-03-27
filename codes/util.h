@@ -13,7 +13,7 @@
 #include "tiff.h"
 
 #define INF			1000000000
-#define SCALE		3
+#define SCALE		1
 
 typedef struct point
 {
@@ -45,13 +45,13 @@ typedef struct dpoint
 // generate integer [min,max]
 #define int_random(min,max)  (int)((1.-random2())*((double)((max)+1.)-(double)(min))+(double)(min))
 
-#ifndef max
-#define max(a,b)	(((a) > (b))? (a) : (b))
-#endif
+//#ifndef max(a,b)
+//#define max(a,b)	(((a) > (b))? (a) : (b))
+//#endif
 
-#ifndef min
-#define min(a,b)	(((a) < (b))? (a) : (b))
-#endif
+//#ifndef min(a,b)
+//#define min(a,b)	(((a) < (b))? (a) : (b))
+//#endif
 
 //void LoadImageFromMemory(IplImage *image, unsigned char **y);
 //void LoadImageFromMemory(IplImage *image, int **y);

@@ -3,7 +3,6 @@
 void check_eo(int c_x, int c_y, int x, int y, int c_len, int len,
 			  double c_theta, double theta, double dist, int *n_eo, double *g_Rc)
 {
-#ifdef QUALITY_CANDY
 	double g_tau, g_dist;
 	if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) >= MAX(c_len,len)/2)
 	{
@@ -12,23 +11,13 @@ void check_eo(int c_x, int c_y, int x, int y, int c_len, int len,
 			g_tau = -sigma(tau_ij*tau_ij,TAU_MAX*TAU_MAX);
 		else
 			g_tau = 2;
-		g_dist = -sigma(dist*dist, NEIGHBOORHOOD*NEIGHBOORHOOD);
-		//if (ABS(tau_ij-TAU_MAX) > _PI/20)
-				*g_Rc += (g_tau+g_dist)/2.;
 
-		// 임시로테스트
+		g_dist = -sigma(dist*dist, NEIGHBOORHOOD*NEIGHBOORHOOD);
+		*g_Rc += (g_tau+g_dist)/2.;
+		if(*g_Rc)
 		if (tau_ij > TAU_MAX)
-				(*n_eo)++;
+			(*n_eo)++;
 	}
-#else // quility candy
-	if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) >= MAX(c_len,len)/2)
-	{
-		double tau_ij = MIN(ABS(c_theta-theta),_PI-ABS(c_theta-theta));
-		if (tau_ij > TAU_MAX)
-		//if (ABS(tau_ij-TAU_MAX) > _PI/20)
-				(*n_eo)++;
-	}
-#endif
 }
 
 
