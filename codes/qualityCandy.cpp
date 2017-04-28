@@ -3,7 +3,6 @@
 #include "allocate.h"
 #include <iostream> //KDW
 #include <time.h>
-#include "neck.h"
 
 
 

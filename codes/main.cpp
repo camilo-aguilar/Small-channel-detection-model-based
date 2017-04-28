@@ -8,7 +8,6 @@
 #include "allocate.h"
 #include "random.h"
 #include "tiff.h"
-#include "neck.h"
 #include "ndmulti_e.h"
 #include "em.h"
 #include "QualityCandy.h"

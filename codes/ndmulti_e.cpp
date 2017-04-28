@@ -1,4 +1,3 @@
-#include "neck.h"
 #include "ndmulti_e.h"
 #include "random.h"
 #include "QualityCandy.h"
