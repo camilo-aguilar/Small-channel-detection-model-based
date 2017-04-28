@@ -1,5 +1,29 @@
 #include "QualityCandy.h"
 
+
+/*******************************************************
+Check EO
+Checks External Bad Orientation w/ respecto to Free/Single/Double Segs
+Returns number of external bad orientation segments and bad eo energy (g_Rc)
+
+Inputs:		 													
+	c_x 	: Center_x of seg1
+	c_y 	: Center_y of seg1
+	x 		: Point at x of seg2
+	y 		: Point at y of seg2
+	c_len	: Length of seg1
+	len 	: Length of seg2
+	c_theta : Theta of seg1
+	theta 	: Theta of seg2
+	dist 	: Closes Distance Between Nodes
+	
+Outputs:	
+	n_eo	:	
+	g_Rc	: Output Energy
+
+Returns:
+	
+*********************************************************/
 void check_eo(int c_x, int c_y, int x, int y, int c_len, int len,
 			  double c_theta, double theta, double dist, int *n_eo, double *g_Rc)
 {
@@ -15,12 +39,29 @@ void check_eo(int c_x, int c_y, int x, int y, int c_len, int len,
 		g_dist = -sigma(dist*dist, NEIGHBOORHOOD*NEIGHBOORHOOD);
 		*g_Rc += (g_tau+g_dist)/2.;
 		if(*g_Rc)
-		if (tau_ij > TAU_MAX)
-			(*n_eo)++;
+			if (tau_ij > TAU_MAX)
+				(*n_eo)++;
 	}
 }
 
 
+/*******************************************************
+Bad_EO
+Checks External Bad Orientation w/ respecto to Free/Single/Double Segs
+Returns number of external bad orientation segments and bad eo energy (g_Rc)
+
+Inputs:		 													
+	neighborR 	: Radious of Search for Bad Orientation as scalar
+	searchRatio : Radious of Search for Bad Orientatio as a ratio of min(|seg1|,|seg2|)
+	lineObj 	: Segment which is being analyzed
+	Candy 		: Linked List with all detected Candy Objects so far
+
+Outputs:	
+	g_Rc		: Output Energy
+
+Returns:
+
+*********************************************************/
 int Bad_EO(int neighborR,double searchRatio, lineObj *line, Candy *M, double *g_Rc)
 {
 	int n_eo = 0;
@@ -33,35 +74,66 @@ int Bad_EO(int neighborR,double searchRatio, lineObj *line, Candy *M, double *g_
 
 
 }
-#if 1
+
+/*******************************************************
+Bad_EO_From Link
+Checks External Bad Orientation w/ respecto to Free/Single/Double Segs
+Returns number of external bad orientation segments and bad eo energy (g_Rc)
+
+Inputs:		 													
+	lineObj 	: Segment which is being analyzed
+	neighborR 	: Radious of Search for Bad Orientation as scalar
+	searchRatio : Radious of Search for Bad Orientatio as a ratio of min(|seg1|,|seg2|)
+	link 		: Linked List with Free/Single/Bad Segments
+	n 			: 
+
+Outputs:
+	g_Rc		: Output Energy
+
+Returns: 
+
+*********************************************************/
 int Bad_EO_from_Link(lineObj *line,int neighboorR,double searchRatio, LinkedList link, int n, double *g_Rc)
 {
+
+	//Center at (x,y)
 	int c_x = line->x;
 	int c_y = line->y;
+
+	// Get End A and End B
 	site c_enda = line->enda;
 	site c_endb = line->endb;
+
+	//Get Angle and Length
 	double c_theta = line->theta;
 	int c_len=line->len;
+	
 	double dist;
-
 	int n_eo = 0;
+
 	Node *p;
+	int if_eo=0;
+	int which_end_is_neighboor = 0;
+	int if_connect = 0;
+
+	//Linked List of Free/Single/Double Segs
 	p = link;
 	
 	for (int i = 0;i < n; i++)
 	{
 		p = p->next;
+		//Get Line Object
 		lineObj *l = p->index;
+		//Get New End A and End B
 		site enda = l->enda;
 		site endb = l->endb;
 
-		int if_eo = 0;
-		int which_end_is_neighboor = 0;
-		int if_connect = 0;
-#if 1
+		if_eo = 0;
+		which_end_is_neighboor = 0;
+		if_connect = 0;
+
 		dist = CheckConnection(c_enda,c_endb,enda,endb,searchRatio,neighboorR,&if_eo, &if_connect, &which_end_is_neighboor);
 		if (l!= line && if_eo != 0)
-		//if (if_eo != 0)
 		{
 			int len = l->len;
 			int x = l->x;
@@ -77,7 +149,10 @@ int Bad_EO_from_Link(lineObj *line,int neighboorR,double searchRatio, LinkedList
 				line->endb_L_Num++;
 			}
 			else if (which_end_is_neighboor == 3)
+			{
 				n_eo = 5;
+			}	
+
 			if(if_connect == 1)
 			{
 				line->enda_C[line->enda_C_Num] = l;
@@ -89,16 +164,18 @@ int Bad_EO_from_Link(lineObj *line,int neighboorR,double searchRatio, LinkedList
 				line->endb_C_Num++;
 
 			}
+
+			
 			check_eo(c_x, c_y, x, y, c_len, len, c_theta, l->theta, dist,&n_eo,g_Rc);
 
 		}
 }
-#endif
+
 		return n_eo;
 }
-#endif
 
-#if 1
+
+
 int Bad_EO_from_Link_freeSeg(lineObj *line,int neighboorR,double searchRatio, LinkedList link, int n, double *g_Rc)//, int *dn_f, int *dn_s, int *dn_d)
 {
 	int c_x = line->x;
@@ -112,9 +189,7 @@ int Bad_EO_from_Link_freeSeg(lineObj *line,int neighboorR,double searchRatio, Li
 	int n_eo = 0;
 	Node *p;
 	p = link;
-//	(*dn_f) = 0;
-//	(*dn_s) = 0;
-//	(*dn_d) = 0;
+
 	
 	
 	for (int i = 0;i < n; i++)
@@ -140,65 +215,39 @@ int Bad_EO_from_Link_freeSeg(lineObj *line,int neighboorR,double searchRatio, Li
 			{
 				line->enda_L[line->enda_L_Num] = l;
 				line->enda_L_Num++;
-//				(*dn_f)++;
 
 			}
 			else if (which_end_is_neighboor == 2 && if_connect != 2)
 			{
 				line->endb_L[line->endb_L_Num] = l;
 				line->endb_L_Num++;
-				//line->enda_L[line->enda_L_Num] = l;
-				//line->enda_L_Num++;
-//				(*dn_f)++;
+
 			}
-//			else if (which_end_is_neighboor == 3 && if_connect != 3)  //only nearby, no connection
-//			{
-//				line->endb_L[line->endb_L_Num] = l;
-//				line->endb_L_Num++;
-////				(*dn_f)++;
-//			}
-//			else if (which_end_is_neighboor == 4 && if_connect != 4)
-//			{
-//				line->endb_L[line->endb_L_Num] = l;
-//				line->endb_L_Num++;
-////				(*dn_f)++;
-//			}
+
 			else if (which_end_is_neighboor == 3)
 			{
 				n_eo=5;
-//				(*dn_f)++;
+
 			}
 			if(if_connect == 1)
 			{
 				line->enda_C[line->enda_C_Num] = l;
 				line->enda_C_Num++;
-//				if(l->type == 0) //free end
+
 			}
 			if (if_connect == 2)
 			{
 				line->endb_C[line->endb_C_Num] = l;
 				line->endb_C_Num++;
-//				line->enda_C[line->enda_C_Num] = l;
-//				line->enda_C_Num++;
 
 			}
-			//if(if_connect == 3)
-			//{
-			//	line->endb_C[line->endb_C_Num] = l;
-			//	line->endb_C_Num++;
-			//}
-			//if (if_connect == 4)
-			//{
-			//	line->endb_C[line->endb_C_Num] = l;
-			//	line->endb_C_Num++;
 
-			//}
 			check_eo(c_x, c_y, x, y, c_len, len, c_theta, l->theta, dist,&n_eo, g_Rc);
 		}
 		}
 		return n_eo;
 }
-#endif
+
 int Bad_EO_freeSeg(int neighborR,double searchRatio, lineObj *line, Candy *M, double *g_Rc)
 {
 	int n_eo = 0;
@@ -242,7 +291,7 @@ int Bad_EO_from_Link_death(lineObj *line,int neighboorR,double searchRatio, Link
 	Node *p;
 	p = link;
 	
-		for (int i = 0;i < n; i++)
+	for (int i = 0;i < n; i++)
 	{
 		p = p->next;
 		lineObj *l = p->index;
@@ -255,7 +304,6 @@ int Bad_EO_from_Link_death(lineObj *line,int neighboorR,double searchRatio, Link
 
 		dist = CheckConnection(c_enda,c_endb,enda,endb,searchRatio,neighboorR,&if_eo, &if_connect,&which_end_is_neighboor);
 		if (l!= line && if_eo != 0)
-		//if (if_eo != 0)
 		{
 			int len = l->len;
 			int x = l->x;
@@ -263,8 +311,8 @@ int Bad_EO_from_Link_death(lineObj *line,int neighboorR,double searchRatio, Link
 			
 			check_eo(c_x, c_y, x, y, c_len, len, c_theta, l->theta, dist,&n_eo,g_Rc);
 		}
-		}
-		return n_eo;
+	}
+	return n_eo;
 }
 
 #endif

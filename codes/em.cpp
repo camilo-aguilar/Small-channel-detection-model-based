@@ -500,7 +500,6 @@ void emmpm_betaimg(unsigned char **y, unsigned char **xt, double **beta[], doubl
 	*/
 	double mu, sigma;
 	int k, kk, l;
-	int num_vpar = 2*classes*classes+classes;
 	double **probs[MAX_CLASSES], **diff;
 	double tmp;
 #ifdef EM_IMG_OUTPUT

@@ -6,44 +6,13 @@
 void check_io(site c_enda, site c_endb, site enda, site endb, int c_x, int c_y, int x, int y, 
 			  double tau_ij, double c_theta, double theta, int *n_io, double *g_Rio)
 {
-#ifdef QUALITY_CANDY
-#define PI_OVER2_MINUS_DELTA_MIN_SQURE  1.3879131192656386475625 
-	//(_PI/2-delta_min)*(_PI/2-delta_min)=
-	// (3.141592654)*(3.141592654)*9/64
-	// delta_min = _PI/8
+	#define PI_OVER2_MINUS_DELTA_MIN_SQURE  1.3879131192656386475625 
+	
+	if (ABS(tau_ij - _PI/2) > DELTA_IO_MIN) // > Pi/8
+		(*g_Rio)=INF;
+	else
+		(*g_Rio)=1-sigma(tau_ij*tau_ij,PI_OVER2_MINUS_DELTA_MIN_SQURE);
 
-		if (ABS(tau_ij - _PI/2) > _PI/8)
-			(*g_Rio)=INF;
-		else
-			(*g_Rio)=1-sigma(tau_ij*tau_ij,PI_OVER2_MINUS_DELTA_MIN_SQURE);
-
-#else
-	if( doIntersect(c_enda, c_endb, enda, endb))
-	{
-		if (ABS(tau_ij - _PI/2) > _PI/8)//DELTA_MAX
-			(*n_io)++;
-	}
-	else  // do not intersect
-	{
-		if (ABS(c_theta-theta) > PARRALLEL_RANGE) 
-		{
-			if (ABS(tau_ij - _PI/2) > _PI/8)//DELTA_MAX
-				(*n_io)++;
-		}
-		else 
-		{     //KDW if PARRALLEL_RANGE is negative this does not applied
-			double l = sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y)));
-			double site_theta = acos(double(ABS(c_x-x)/l));
-			if (c_theta > _PI/2.0)
-				site_theta += _PI/2.0;
-			double theta_diff = ABS(site_theta-c_theta);
-			double distance = l*sin(theta_diff);
-
-			if (distance <8)
-				(*n_io)++;
-		}
-	}
-#endif
 }
 
 

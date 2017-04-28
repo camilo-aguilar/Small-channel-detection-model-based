@@ -20,7 +20,61 @@
 	#include "gui_functions.h"
 #endif
 
+#if 0
 
+				for(i=0; i<rows;i++)
+					for(j=0;j<cols;j++)
+								yimg_int[i][j] = yimg[i][j];
+
+				double my_theta;
+				for(my_theta= THETA_MIN; my_theta <= THETA_MAX; my_theta = my_theta + (THETA_MAX-THETA_MIN)/20)
+				{
+					double super_min = 100000;
+					double super_max = -100000;
+					for(i=0; i<rows;i++)
+						for(j=0; j<cols; j++)
+							{
+								channel_img[i][j] = im_filter(yimg_int, rows, cols, my_theta, i, j);
+								if(channel_img[i][j] < super_min)
+									super_min = channel_img[i][j];
+								if(channel_img[i][j] > super_max)
+									super_max = channel_img[i][j];
+							}
+
+					printf("Super Min: %f \n", super_min);
+					printf("Super Max: %f \n", super_max);
+
+					for(i=0; i<rows;i++)
+						for(j=0; j<cols; j++)
+						xt[i][j] = 255 -(((channel_img[i][j]-super_min)*255.00)/(super_max-super_min));
+			 
+
+				//#endif
+				sprintf(segfileName, "%s_derivative_at_%.2f.tiff",outfilePrefix,my_theta*180/_PI);
+				/* TO REMOVE!!! =================================================================================================*/
+				
+
+				end_time=clock();
+				printf("end time is:%1.0f ms\n",(double)(end_time)/CLOCKS_PER_SEC*100);
+				printf("Running time is:%1.0f ms\n",(double)(end_time-start_time)/CLOCKS_PER_SEC*100);
+				for (i=0; i<rows; i++)
+					for (j=0; j<cols; j++)
+						output_img.mono[i][j] = (int)xt[i][j] * 255 / (classes - 1);
+				
+				if ((fp = fopen(segfileName, "wb")) == NULL ) {
+					printf("Cannot open file %s\n", outfileName);
+					exit(1);
+				}
+				if (write_TIFF(fp, &output_img)) {
+					printf("Error writing TIFF file %s\n", outfileName);
+					exit(1);
+				}
+				fclose(fp);
+			}
+		}
+		return 0;
+
+#endif
 
 
 
@@ -122,11 +176,10 @@ int QuilityCandyInterface(unsigned char **yimg, double **channel_img, double **l
 			double variance, NeckDent **mp, MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows)
 {
-  FILE *fp;
-  struct TIFF_img input_img, MBD_img;
+    struct TIFF_img input_img;
   double **img1,****img2,****img3,**patch;
   int **img_seg;
-  int32_t i,j,pixel,pixel2;
+    int32_t i,j;//,pixel,pixel2;
 
   input_img.height = rows;
   input_img.width = cols;
@@ -192,161 +245,66 @@ MAIN
 int main( int argc , char** argv)
 {
 	printf(">>>>>>>>>>>>>>>>Start of the Program<<<<<<<<<<<<<\n");
-	struct TIFF_img input_img, input_gt_img, output_img, output_color_img;
-	unsigned char **yimg = NULL, **yfiltered, **laplacian, **lm_img;
-	double **lm, **beta_dimg[2], **channel_img;
-	char infileName[1024], outfileName[1024];
-	char segfileName[1024], outfilePrefix[1024];
-	char gtfileName[1024];
-
-	FILE *fp;
-	int i, j, ii, jj, rows, cols;
-	double mu[CLASSES], mean, vari[CLASSES], variance, min, max;
-	int cnt[CLASSES];
-	// for EM/MPM
-	double beta[MAX_CLASSES], gamma[MAX_CLASSES];
-	int mpmiter = 10, emiter = 30, classes = 2;
-	unsigned char **xt, **gt;  /* output : entropy image */
-	double **blur, sigma = 0., dsum, sum[CLASSES], di, dj, misclassed;
-	int blur_size = 5, enable_blur = 0;
-	int run_emmpm = 0;
-	//NeckDent mp[MAX_MKPNT_NUM];
-	NeckDent *mp = NULL;
-	int np_num;
-	char filename[1024];
 	
-	//int syn_ch_gen = 0, gen_syn_img_en = 0, syn_num = SYN_CH_NUM;
-	//NeckDent_Syn syn_ch[SYN_CH_NUM];
-	double total_e[MAX_MPP_ITER_NUM+1];
-	int	   mp_num[MAX_MPP_ITER_NUM+1];
-	MPP_Parameters mpp;
-	double avg_width, avg_amp, avg_error, avg_se, avg_U, dtmp;
-
-	int k, m, found;
-	double running_time;
-	clock_t start_time, end_time;
-
-
-	char  PARAM_IMAGE_NAME[50];							//1  Name
-	int   PARAM_TESTTYPE = 0;		     				//2  0:Test single object,  1:Run normal code 
-	
-	int   PARAM_OPTIMIZATION_TYPE = 2;	    			//3  0:RJMCMC, 1:Multiple Birth and Death	2:RJMCMC Quality Candy model
-	
-	int   PARAM_FIXED_PARAMETERS = -1;      			//4  0:synthetic,	1:BSEImage free angle, 2:BLEImage fixed angle 3:slice_crop
-	float PARAM_LAMBDA_RJMCMC = 30000;	     			//5  Lambda(RJMCMC)  (intensity = lambda*vk), alm(MBND)0.5
-	float PARAM_T0 = 0.08;			      				//6  T0 (big more death)
-	float PARAM__BETA_MPP = 14;		      				//7  Betampp(1)
-	float PARAM_LAMBDA_l = 0;	            			//8	 Lambda_l		
-	float PARAM_LAMBDA_int = 0.005;		      			//9  Lambda_int
-	
-	int   PARAM_CHANNEL_TYPES = 1;               		//10 0:simple channel	1:necking only	2: denting only 3:necking and denting
-	
-	float PARAM_ERROR_THRESHOLD = 1;	      			//11 error_th	13
-	float PARAM_AMPLITUDE_THRESHOLD = 21.0;	      		//12 Amp_th 	
-	float PARAM_GAUSSIAN_TAU = 17;		      			//13 Gaussina_tau 	(RJMCMC)"20" (tau,lambda_a,error_th) = (25,27,14)
-	float PARAM_DECREASE_COEFFICIENT = 0.999999;   		//14 Decrease coeff = 0.999999
-	int   PARAM_ITERATIONS = 30000000;		      			//15 Iterations
-	float PARAM_BETTA_FOR_MPP = 10*2.7;	      			//16 Beta for MPP
-	
-	/* Parameter Parsing */
-
 	if(argc < 2)
 	{
 		printf("Error, only 2 arguemnts\n");
 		exit(1);
-	} 
-
+	} 	
+	/* Image Structures */
+	struct TIFF_img input_img, input_gt_img, output_img, output_color_img;
+	unsigned char **yimg = NULL, **yfiltered, **laplacian, **lm_img;
+	double **lm, **beta_dimg[2], **channel_img;
+	
+	/*File names* arrays*/
+	char infileName[1024], outfileName[1024];
+	char segfileName[1024], outfilePrefix[1024];
+	char gtfileName[1024], filename[1024];
 	sprintf(infileName, "%s.tiff",argv[1]);
 	sprintf(segfileName, "%s_seg.tiff",argv[1]);
 	sprintf(gtfileName, "%s_gt.tiff",argv[1]);
 	sprintf(outfilePrefix, "%s",argv[1]);
-	
-	mpp.test = PARAM_TESTTYPE;							//2
-	mpp.optimization_type = PARAM_OPTIMIZATION_TYPE;	//3
-	mpp.fixed_param_num = PARAM_FIXED_PARAMETERS;		//4
-	mpp.alm = PARAM_LAMBDA_RJMCMC;
-	mpp.b_zero = mpp.alm;
-	mpp.betampp = PARAM__BETA_MPP;
-	mpp.lambda_l = PARAM_LAMBDA_l;	// 0.12
-	mpp.lambda_int = PARAM_LAMBDA_int;
-	mpp.nd_type_num = PARAM_CHANNEL_TYPES;	// necking only = 1, 
-	
-	mpp.amp_th = PARAM_AMPLITUDE_THRESHOLD;
-	mpp.gaussian_tau = PARAM_GAUSSIAN_TAU;
-	
-	
 
-	mpp.alm = LAMBDA_RJMCMC;
-	mpp.b_zero = mpp.alm;
-	mpp.lambda_l = LAMBDA_L;	// 0.12
-	mpp.lambda_int = LAMBDA_INT;
-	mpp.nd_type_num = CHANNEL_TYPES;	// necking only = 1, 
-	mpp.gaussian_tau = GAUSSIAN_TAU;
-	mpp.betampp = BETA_MPP;
+	/* Helper Variables */
+	FILE *fp;
+	int i, j, ii, jj, rows, cols;
+	int m;
+	double running_time;
+	clock_t start_time, end_time;
+	int np_num;
+	
+	// for EM/MPM
+	double mu[CLASSES], mean, vari[CLASSES], variance, min, max;
+	int cnt[CLASSES];
+	double beta[MAX_CLASSES], gamma[MAX_CLASSES];
+	int classes = 2;
+	unsigned char **xt, **gt;  /* output : entropy image */
+	double **blur, sigma = 0., dsum, sum[CLASSES], di, dj, misclassed;
+	int blur_size = 5, enable_blur = 0;
+	int run_emmpm = 0;
+
+	
+	//Variables for MPP
+	double total_e[MAX_MPP_ITER_NUM+1];
+	int	   mp_num[MAX_MPP_ITER_NUM+1];
+	double avg_width, avg_amp, avg_error, avg_se, avg_U, dtmp;
 	beta[0] = BETTA_FOR_MPP;
 	beta[1] = BETTA_FOR_MPP;
-
-
-	mpp.T0 				= INITIAL_T0;
-	mpp.iter_num 		= ITERATIONS;
-	mpp.gamma_d  		= GAMMA_D;	
-	mpp.w_f 			= W_F;
-	mpp.w_s 			= W_S;
-	mpp.w_d 			= W_D;
-	mpp.w_io 			= W_IO;
-	mpp.w_eo 			= W_EO;
-	mpp.error_th 		= ERROR_TH;
-	mpp.widthmin		= W_MIN;	
-	mpp.widthmax		= W_MAX;	
-	mpp.lengthmin		= L_MIN;	
-	mpp.lengthmax		= L_MAX;	
-	mpp.de_coeff 		= DECREASE_COEFFICIENT;
-
-	
-	
-
-
-	mpp.hard_repulsion	= 4;	
-	mpp.gaussian_tau	= 15;	
-	//Denting and Necking Channels
-	mpp.symmetry_th		= 0;	// 8
-	mpp.lambda_s		= 0;	//Symmetry Potential
-	mpp.lambda_nc		= 0;
-	
-
-	//Denting
-	mpp.dent_l_w_ratio	= 1.3; // 1.25 (MBND) 1.3(RJMCMC)1.3
-	
-	//Multiple Birth and Death
-	mpp.p_birth			= 0.3;
-	mpp.p_death			= 0.3;
-	mpp.p_translation	= 0.2;
-	mpp.p_dilation		= 0.2;
-	mpp.p_rotation		= 0.08;
-	mpp.p_switching		= 0.;
- 
- 
-	mpp.alpha			= 1;
-	mpp.sigma			= 0.9;
-	mpp.blur_size		= 7;
-	
-	//Very Important
-	mpp.lambda_e = 1;			//Object Potential
-	mpp.lambda_dc= 3;			//Discontinuity Potential 
-
-	
-	mpp.lambda_a = 0.5;
-	mpp.length_th = mpp.lengthmin;
-
-	readseed();
 	gamma[0] = 0.;
 	gamma[1] = 0.;
 	sigma = 0.58;
+	NeckDent *mp = NULL;
+
+	readseed();
+		
 	
+	/* Parameter Parsing */
+	MPP_Parameters mpp = parse_input_parameters(argc,argv);
 	
+	_print_current_parameters(mpp);
+
 	start_time=clock();
 	/*Read Image */	
-	/*NOTE: IMAGE IS CURRENTLY BEING INVERTED */
 	if(1)
 	{
 	
@@ -364,9 +322,10 @@ int main( int argc , char** argv)
 			}
 			cols = input_img.width;
 			rows = input_img.height;
-			/* close image file */
 			fclose(fp);
 			yimg = (unsigned char **)get_img(cols, rows, sizeof(unsigned char));
+			
+			
 			/* check the type of image data */
 			if (input_img.TIFF_type != 'g') 
 			{
@@ -377,11 +336,16 @@ int main( int argc , char** argv)
 			{
 				for (j = 0; j < cols; j++)
 				{
-					yimg[i][j] = input_img.mono[i][j];
+					#if IMAGE_IVERTED
+						yimg[i][j] = 255 - input_img.mono[i][j];
+					#else
+						yimg[i][j] = input_img.mono[i][j];
+					#endif
 				}
 			}
 		}
 	}
+
 
 	/*Vectorize Image*/
 	if(1)
@@ -487,49 +451,45 @@ int main( int argc , char** argv)
 		//max_entropy = log10(classes)/log(2);
 		if (run_emmpm)
 		{
-			// calculate blurring matrix 
-			/*	Aexp(-x/sigma)											*/
-			/*	A(amplitude), x(distance from center), sigma(width)		*/
-			
 
 			start_time=clock();
 			printf("start time is:%1.0f ms\n",(double)(start_time)/CLOCKS_PER_SEC*100);
 			
-
 			enable_blur = 0;
 			//#if PRE_SEG_EM_MPM
 			//	emmpm(yimg, xt, beta, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
 			//#else
-				for(i=0; i<rows;i++)
-					for(j=0; j<cols; j++)
-						if(yimg[i][j]> 150)
-							xt[i][j] = 1;
-						else
-							xt[i][j] = 0;
-			//#endif
-			sprintf(segfileName, "%s_seg.tiff",outfilePrefix);
-			/* TO REMOVE!!! =================================================================================================*/
-
-
-
-			end_time=clock();
-			printf("end time is:%1.0f ms\n",(double)(end_time)/CLOCKS_PER_SEC*100);
-			printf("Running time is:%1.0f ms\n",(double)(end_time-start_time)/CLOCKS_PER_SEC*100);
-			for (i=0; i<rows; i++)
-				for (j=0; j<cols; j++)
-					output_img.mono[i][j] = (int)xt[i][j] * 255 / (classes - 1);
+			for(i=0; i<rows;i++)
+				for(j=0; j<cols; j++)
+					if(yimg[i][j]> 150)
+						xt[i][j] = 1;
+					else
+						xt[i][j] = 0;
 			
-			if ((fp = fopen(segfileName, "wb")) == NULL ) {
-				printf("Cannot open file %s\n", outfileName);
-				exit(1);
-			}
-			if (write_TIFF(fp, &output_img)) {
-				printf("Error writing TIFF file %s\n", outfileName);
-				exit(1);
-			}
-			fclose(fp);
-		}
 
+
+				sprintf(segfileName, "%s_seg.tiff",outfilePrefix);
+				/* TO REMOVE!!! =================================================================================================*/
+				
+
+				end_time=clock();
+				printf("end time is:%1.0f ms\n",(double)(end_time)/CLOCKS_PER_SEC*100);
+				printf("Running time is:%1.0f ms\n",(double)(end_time-start_time)/CLOCKS_PER_SEC*100);
+				for (i=0; i<rows; i++)
+					for (j=0; j<cols; j++)
+						output_img.mono[i][j] = (int)xt[i][j] * 255 / (classes - 1);
+				
+				if ((fp = fopen(segfileName, "wb")) == NULL ) {
+					printf("Cannot open file %s\n", outfileName);
+					exit(1);
+				}
+				if (write_TIFF(fp, &output_img)) {
+					printf("Error writing TIFF file %s\n", outfileName);
+					exit(1);
+				}
+				fclose(fp);
+			}
+		
 	}
 	
 	for(i=0; i < input_img.height; i++)
@@ -591,9 +551,11 @@ int main( int argc , char** argv)
 			mpp.vari[i] = vari[i];
 			printf ("mu[%d] = %1.3f, vari[%d] = %1.3f, variance = %1.3f\n",i,mu[i],i,vari[i],variance);
 		}
+		double test_th = fabs((mu[0]-mu[1]))/sqrt(vari[0]/cnt[0] + vari[1]/cnt[1]);
+		printf("Recommended error_th: %f\n", test_th);
 	}
 
-	#define BIRTH_MAP_R		1
+	#define BIRTH_MAP_R		3
 
 
 	/*Create Birthmap*/
@@ -633,28 +595,6 @@ int main( int argc , char** argv)
 			}
 		}
 		
-		// for output image
-		for (i=0; i<rows; i++)
-		{
-			for (j=0; j<cols; j++)
-			{
-				output_img.mono[i][j] = (int)(lm[i][j] * 255.);
-			}
-		}
-
-		sprintf(segfileName, "%s_birthmap.tiff",outfilePrefix);
-
-		if ((fp = fopen(segfileName, "wb")) == NULL ) 
-		{
-			printf("Cannot open file %s\n", outfileName);
-			exit(1);
-		}
-		if (write_TIFF(fp, &output_img)) 
-		{
-			printf("Error writing TIFF file %s\n", outfileName);
-			exit(1);
-		}
-		fclose(fp);
 	}
 
 	//*****************************************************************************
@@ -747,12 +687,7 @@ int main( int argc , char** argv)
 		avg_se		= avg_se	/np_num;
 		avg_U		= avg_U		/np_num;
 
-		//printf("gaussian tau = %1.4f\n",mpp.gaussian_tau);
-		//printf("average width = %1.4f\n",avg_width);
-		//printf("average amp = %1.4f\n",avg_amp);
-		//printf("average error = %1.4f\n",avg_error);
-		//printf("average se = %1.4f\n",avg_se	);
-		//printf("average U = %1.4f\n",avg_U	);
+
 	}
 
 	/*write objects to a text file*/
@@ -827,79 +762,7 @@ int main( int argc , char** argv)
 	
 	
 	
-	/* Save output Image and Write Parameters to a text file*/
-	if(0)
-	{
-		for (i=0; i<rows; i++)
-			for (j=0; j<cols; j++)
-				output_img.mono[i][j] = (int)xt[i][j] * 255 / (classes - 1);
-		sprintf(segfileName, "%s_mpp_segmentation.tiff",outfilePrefix);
-	
 
-		if ((fp = fopen(segfileName, "wb")) == NULL ) {
-			printf("Cannot open file %s\n", outfileName);
-			exit(1);
-		}
-		if (write_TIFF(fp, &output_img)) {
-			printf("Error writing TIFF file %s\n", outfileName);
-			exit(1);
-		}
-		fclose(fp);
-
-		sprintf(outfileName, "%s_mpp_segmentation_parameters.txt",outfilePrefix);
-
-		if ((fp = fopen(outfileName, "wb")) == NULL ) {
-			printf("Cannot open file %s\n", outfileName);
-			exit(1);
-		}
-
-		fprintf(fp,"Summary\r\n");
-		fprintf(fp,"Image Name = %s\r\n",
-				argv[1]);
-		
-		fprintf(fp,"Iterations = %d\r\nRunning Time = %1.0f minutes\r\n",
-				   mpp.iter_num, running_time/60.0);
-
-				
-		fprintf(fp,"\r\nChannel Parameters\r\n");
-		fprintf(fp,"widthmin = %d\r\nwidthmax = %d\r\nlengthmin = %d\r\nlengthmax = %d\r\n",
-				mpp.widthmin, mpp.widthmax, mpp.lengthmin, mpp.lengthmax);
-
-		fprintf(fp,"\r\n QualityCandy Parameters\r\n");
-		fprintf(fp,"Gamma_d = %f\r\n W_eo = %f\r\n W_s = %f\r\n  W_f = %f\r\n W_s = %f\r\n W_d = %f\r\n W_io = %f \r\n",
-				mpp.gamma_d, mpp.w_eo, mpp.w_s, mpp.w_f, mpp.w_s,mpp.w_d,mpp.w_io);
-
-
-		//fprintf(fp,"\r\nDenting/Necking Channels Parameters\r\n");
-		//fprintf(fp,"dent_l_w_ratio = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\n",
-		//			mpp.dent_l_w_ratio, mpp.amp_th, mpp.lambda_l);
-				
-		//	fprintf(fp,"\r\nOptimization Parameters\r\n");
-		//	fprintf(fp,"p_birth = %1.2f\r\np_death = %1.2f\r\np_translation = %1.2f\r\np_dilation = %1.2f\r\np_rotation = %1.2f\r\np_switching = %1.2f\r\n",
-		//			mpp.p_birth, mpp.p_death, mpp.p_translation, mpp.p_dilation, mpp.p_rotation, mpp.p_switching);
-		
-		//fprintf(fp,"single_e_test = %d\r\noptimization_type = %d\r\nfixed_param_num = %d\r\nalm(b_zero) = %1.2f\r\nT0 = %1.2f\r\n",
-		//		mpp.test, mpp.optimization_type, mpp.fixed_param_num, mpp.alm, mpp.T0);
-		
-		//fprintf(fp,"\r\nMPP Interaction Parameters\r\n");
-		//fprintf(fp,"lambda_e = %1.2f\r\nlambda_a = %1.2f\r\nlambda_l = %1.2f\r\nlambda_s = %1.2f\r\nlambda_nc = %1.2f\r\nlambda_dc = %1.2f\r\n",
-		//		mpp.lambda_e, mpp.lambda_a, mpp.lambda_l, mpp.lambda_s, mpp.lambda_nc,mpp.lambda_dc);
-				
-		//fprintf(fp,"betampp = %1.2f\r\nvk(delta) = %1.2f\r\nalpha = %1.2f\r\nde_coeff = %1.8f\r\nnd_type_num = %d\r\n",
-		//		mpp.betampp, mpp.vk, mpp.alpha, mpp.de_coeff, mpp.nd_type_num);
-
-		//fprintf(fp,"DELTA_TRANSLATION,=,%1.2f \r\nDELTA_DILATION,=,%1.2f \r\nDELTA_ROTATION,=,%1.2f \r\n",
-		//			DELTA_TRANSLATION,			DELTA_DILATION,			DELTA_ROTATION);
-
-		//		fprintf(fp,"length_th = %1.2f\r\nsymmetry_th = %1.2f\r\nWEIGHT_AMP = %1.2f\r\nWEIGHT_OFFSET = %1.2f\r\nNECK_DISCON_TH = %1.2f\r\nDENT_DISCON_TH = %1.2f\r\n",
-		//		mpp.length_th, mpp.symmetry_th, WEIGHT_AMP, WEIGHT_OFFSET, NECK_DISCON_TH, DENT_DISCON_TH);
-				
-
-		fprintf(fp,"\r\nEM/PMP Parameters\r\n");
-		fprintf(fp,"\r\nbeta0,=,%1.2f \r\nbeta1,=,%1.2f \r\nsigma,=,%1.2f \r\nenable_blur,=,%d \r\npmp,=,%1.2f \r\n \r\n ",
-				beta[0], beta[1], sigma, enable_blur, misclassed);
-		fclose(fp);
-	}
 
 	//	for(i=0; i < input_img.height; i++)
 	//	{
@@ -908,10 +771,10 @@ int main( int argc , char** argv)
 	//			gt[i][j] = (int)(input_gt_img.mono[i][j];
 	//		}
 	//	}
-		printf("Finding Difference Image \n");
-		difference_image(xt, gt ,input_img.height, input_img.width,outfilePrefix);
+	//printf("Finding Difference Image \n");
+	//difference_image(xt, gt ,input_img.height, input_img.width,outfilePrefix);
 		
-		printf("Saving Channel Image\n");
+	printf("Saving Channel Image\n");
 
 
 		for (i = 0; i < rows; i++)
@@ -930,8 +793,9 @@ int main( int argc , char** argv)
 		sprintf(parameter_values, "gamma_%.2f_wf_%.2f_ws_%.2f_wd_%.2f_weo_%.2f_wio_%.2f_wid_%.2f_len_%.2f_error_th_%.2f_iter_%d_",mpp.gamma_d, mpp.w_f , mpp.w_s, mpp.w_d, mpp.w_eo, mpp.w_io,my_width, my_length, mpp.error_th,mpp.iter_num);
 
 
-		save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values);
-
+		//save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values);
+		char output_name_temp[30] = "output";
+		save_channel_image(channel_img, yimg,input_img.height, input_img.width, output_name_temp);
 
 		free(mp);
 		free_TIFF(&output_color_img);
@@ -1031,9 +895,15 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 		{
 			if(channel_img[i][j]  == 0)
 			{
-				output_tiff.color[0][i][j] = 255 - img[i][j];
-				output_tiff.color[1][i][j] = 255 - img[i][j];
-				output_tiff.color[2][i][j] = 255 - img[i][j];
+				#if IMAGE_IVERTED
+					output_tiff.color[0][i][j] = img[i][j];
+					output_tiff.color[1][i][j] = img[i][j];
+					output_tiff.color[2][i][j] = img[i][j];
+				#else 
+					output_tiff.color[0][i][j] = 255 - img[i][j];
+					output_tiff.color[1][i][j] = 255 - img[i][j];
+					output_tiff.color[2][i][j] = 255 - img[i][j];
+				#endif
 			}
 			else
 			{

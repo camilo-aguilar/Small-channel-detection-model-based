@@ -1,5 +1,11 @@
 #include "QualityCandy.h"
 
+
+#if INCLUDE_OPENCV
+	#include "gui_functions.h"
+#endif
+
+
 void UpdateItsNeighboors_born_DoubleSeg (lineObj* seg, Candy* M)
 {
 	lineObj* target;
@@ -387,7 +393,7 @@ int SelectNearestEnd(site a,lineObj *belong,Candy *M,int searchR, site *candid)
 }
 
 
-void AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l, double ****img_seg_l,int img_height, int img_width, double T,double **patch, int patch_len , double ***Matrix, double prior_pen1, double prior_pen2, int test)
+double AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l, double ****img_seg_l,int img_height, int img_width, double T,double **patch, int patch_len , double ***Matrix, double prior_pen1, double prior_pen2, int test)
 {
 	
 	double w_d = M->w_d;
@@ -398,202 +404,167 @@ void AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double **
 	int n_s = M->n_s;
 	int n_f = M->n_f;
 	int n_d = M->n_d;
+	double Echange = 0;
 
-
-	
 
 	lineObj *DoubleSeg = (lineObj *)malloc(sizeof(lineObj));
-
-	//DoubleSeg->width = floor(random2()*(W_MAX-W_MIN)+W_MIN+0.5);
-	//DoubleSeg->len = floor(random2()*(L_MAX-L_MIN)+L_MIN+0.5);
-	//DoubleSeg->theta = random2()*(THETA_MAX-THETA_MIN)+THETA_MIN;
-
 	site  *end = (site *)malloc(2*(n_f+n_s+n_d)*sizeof(site));
 	lineObj **obj = (lineObj **)malloc(2*(n_f+n_s+n_d)*sizeof(lineObj*));
 
-#ifdef EN_NEW_SEG_AT_NON_FREE_END
-	int num = count_all_ends(M,end,obj);
-	if (num > 0){
-		int choose_num = (int)floor(random2()*(num-1)+0.5);
-		DoubleSeg->enda = end[choose_num];
-//		site tmp;
-//		tmp.x = 46; tmp.y = 59;
-//		if(DistSquare(DoubleSeg->enda,tmp)<5)
-//			printf("..");
-		lineObj *belong = obj[choose_num];
-		site candidate;
-		if(SelectNearestEnd(DoubleSeg->enda,belong,M,L_MAX,&candidate))
-			DoubleSeg->endb = candidate;
-		else{
-			free(end);
-			free(obj);
-			return;
-		}
-#else
-	int enda_type, endb_type; //0:freeSeg 1:singleSeg
+	int enda_type, endb_type; 
 	int enda_num,endb_num;
 	int num = 2*n_f+n_s;
 	if (n_f+n_s > 1)
 	{
 		int choose_num = (int)floor(random2()*(num-1)+1+0.5);
 		if(choose_num <= 2*n_f)
-			{
-				DoubleSeg->enda = SelectEndfromFreeLink(M->link_f,n_f,(int)floor(double(choose_num+1)/2));
-				enda_type = 0;
-				enda_num = (int)floor(double(choose_num+1)/2)-1;
+		{
+			DoubleSeg->enda = SelectEndfromFreeLink(M->link_f,n_f,(int)floor(double(choose_num+1)/2));
+			enda_type = 0;
+			enda_num = (int)floor(double(choose_num+1)/2)-1;
 		}
 		else
-			{
-				DoubleSeg->enda = SelectEndfromSingleLink(M->link_s,n_s,choose_num-2*n_f);
-				enda_type = 1;
-				enda_num = choose_num-2*n_f-1;
+		{
+			DoubleSeg->enda = SelectEndfromSingleLink(M->link_s,n_s,choose_num-2*n_f);
+			enda_type = 1;
+			enda_num = choose_num-2*n_f-1;
 		}
 
-		if (DoubleSeg->enda.x == 0 && DoubleSeg->enda.y == 0)
-		{
-			//printf("selcting end error double\n");
-		}
 		DoubleSeg->endb = SelectNearestFreeEnd(DoubleSeg->enda,enda_num,enda_type,M,L_MAX,&endb_num,&endb_type);
-#endif
-	//original quality candy
-	//DoubleSeg->enda.x += floor((2*random2()-1)*NEIGHBOORHOOD+0.5);
-	//DoubleSeg->enda.y += floor((2*random2()-1)*NEIGHBOORHOOD+0.5);
-	//DoubleSeg->endb.x += floor((2*random2()-1)*NEIGHBOORHOOD+0.5);
-	//DoubleSeg->endb.y += floor((2*random2()-1)*NEIGHBOORHOOD+0.5);
+		DoubleSeg->len = (int)sqrt(double(DistSquare(DoubleSeg->endb,DoubleSeg->enda)));
 
-	//	int choose_num2 = floor(random2()*(num-1)+1+0.5);
-	//	while (choose_num2 == choose_num)
-	//	{
-	//		choose_num2 = floor(random2()*(num-1)+1+0.5);
-	//	}
-	//	if(choose_num2 <= 2*n_f)
-	//		DoubleSeg->endb = SelectEndfromFreeLink(M->link_f,n_f,floor(double(choose_num2+1)/2));
-	//	else
-	//		DoubleSeg->endb = SelectEndfromSingleLink(M->link_s,n_s,choose_num2-2*n_f);
+		if (DoubleSeg->endb.x == 0 && DoubleSeg->endb.y == 0)
+			DoubleSeg->len  = (int)L_MAX+1;
 
-	DoubleSeg->len = (int)sqrt(double(DistSquare(DoubleSeg->endb,DoubleSeg->enda)));
-
-	if (DoubleSeg->endb.x == 0 && DoubleSeg->endb.y == 0)
-		DoubleSeg->len  = (int)L_MAX+1;
-
-	//printf("DoubleSeg->len = %d\n",DoubleSeg->len);
-	if (DoubleSeg->len >= L_MIN && DoubleSeg->len <= L_MAX)
-	//if ( DoubleSeg->len <= L_MAX)
-	{
-	DoubleSeg->x = (int)floor(0.5*(double(DoubleSeg->enda.x+DoubleSeg->endb.x))+0.5);
-	DoubleSeg->y = (int)floor(0.5*(double(DoubleSeg->enda.y+DoubleSeg->endb.y))+0.5);
-	if(lm[DoubleSeg->y][DoubleSeg->x]==0){
-		free(DoubleSeg);
-		free(end);
-		free(obj);
-		return;
-	}
-
-	double theta;
-
-	if(DoubleSeg->enda.y < DoubleSeg->endb.y)
-	{
-		if (DoubleSeg->enda.x-DoubleSeg->endb.x != 0)
-		 theta = atan(double((DoubleSeg->endb.y-DoubleSeg->enda.y)/double(DoubleSeg->enda.x-DoubleSeg->endb.x)));
-		else
-			theta = _PI/2;
-		if (theta < 0)
-			theta += _PI;
-		DoubleSeg->theta = theta;
-	}
-	else
-	{
-		if (DoubleSeg->enda.x-DoubleSeg->endb.x != 0)
-		 theta = atan(double((DoubleSeg->enda.y-DoubleSeg->endb.y)/double(DoubleSeg->endb.x-DoubleSeg->enda.x)));
-		else
-			theta = _PI/2;
-		if (theta < 0)
-			theta += _PI;
-		DoubleSeg->theta = theta;
-	}
-
-//KDW	DoubleSeg->width = floor(random2()*(W_MAX-W_MIN)+W_MIN+0.5);
-	DoubleSeg->width = (int)floor(random2()*(W_MAX-W_MIN)+W_MIN+0.5); //KDW
-	DoubleSeg->endb_L_Num = 0;
-	DoubleSeg->enda_L_Num = 0;
-	DoubleSeg->enda_C_Num = 0;
-	DoubleSeg->endb_C_Num = 0;
-
-	double searchRatio = 0.25;
-	double g_Rio = 0;
-
-	Bad_IO(DoubleSeg, M ,&g_Rio);
-
-
-
-	double g_Rc =0.;
-	Bad_EO(NEIGHBOORHOOD,searchRatio,DoubleSeg,M,&g_Rc);
-
-	//should add data term here, assume homogeneous Poisson 
-	int img_num = 0;
-	double iterval = _PI/(RADIUS_SEGS);
-	while (DoubleSeg->theta > iterval )
-	{
-		img_num++;
-		iterval+=_PI/RADIUS_SEGS;
-	}
-//	if (random2()<0.5)
-//		img_num += int(RADIUS_SEGS/2.0);
-
-	if (img_num >= int(RADIUS_SEGS))
-		img_num--;
-
-	//double dterm = dataterm_double(mid_img[img_num],DoubleSeg->enda,DoubleSeg->endb);
-	double dterm =  dataterm_rec(img_seg, DoubleSeg,patch,patch_len,DoubleSeg->width, Matrix, prior_pen1,prior_pen2, img_height,img_width);
-	//double dterm = dataterm(img,DoubleSeg->enda,DoubleSeg->endb,DoubleSeg->theta,DoubleSeg->len,img_num,patch,patch_len);
-	
-	double Echange_from_neighboor = Echange_from_neighboors_born(M,DoubleSeg);
-	
-#ifdef QUALITY_CANDY
-	double Echange = beta*exp(-gamma_d*dterm-w_d-w_io*g_Rio-w_eo*g_Rc-Echange_from_neighboor);
-	DoubleSeg->engergy_for_transition = beta*exp(-gamma_d*dterm-w_d-w_io*g_Rio-w_eo*g_Rc);
-#else
-	double Echange = beta*exp(-gamma_d*dterm-w_d-w_io*n_io-w_eo*n_eo-Echange_from_neighboor);
-	DoubleSeg->engergy_for_transition = beta*exp(-gamma_d*dterm-w_d-w_io*n_io-w_eo*n_eo);
-#endif
-	DoubleSeg->dataterm = dterm;
-	DoubleSeg->img_num = img_num;
-	
-	double R = pow(Echange,T) *(M->p_d_d)* (2*n_f + n_s)/** (2*n_f + n_s-1)*/ /((M->p_d_b)*(n_d+1));
-	
-	//printf("double_seg_r = %f,n_io = %d, n_eo = %d\n",R,n_io,n_eo);
-	double r = random2();
-	if (r < MIN(1,R))
-	{
-		//give birth to such segment
-		if (DoubleSeg->enda_C_Num * DoubleSeg->endb_C_Num != 100)
+		if (DoubleSeg->len >= L_MIN && DoubleSeg->len <= L_MAX)
 		{
-//	if(g_Rio>10000)
-//		printf("..");
-			M->n_d++;
-			DoubleSeg->type = 2;
-		    LinkedListInsert( M->link_d,M->n_d, DoubleSeg);  //this is a double segment
-			UpdateItsNeighboors_born_DoubleSeg(DoubleSeg,M);
+			DoubleSeg->x = (int)floor(0.5*(double(DoubleSeg->enda.x+DoubleSeg->endb.x))+0.5);
+			DoubleSeg->y = (int)floor(0.5*(double(DoubleSeg->enda.y+DoubleSeg->endb.y))+0.5);
+			if(lm[DoubleSeg->y][DoubleSeg->x]==0)
+			{
+				free(DoubleSeg);
+				free(end);
+				free(obj);
+				return 0.0;
+			}
+
+			double theta;
+			if(DoubleSeg->enda.y < DoubleSeg->endb.y)
+			{
+				if (DoubleSeg->enda.x-DoubleSeg->endb.x != 0)
+	 				theta = atan(double((DoubleSeg->endb.y-DoubleSeg->enda.y)/double(DoubleSeg->enda.x-DoubleSeg->endb.x)));
+				else
+					theta = _PI/2;
+				if (theta < 0)
+					theta += _PI;
+				
+				DoubleSeg->theta = theta;
+			}
+			else
+			{
+				if (DoubleSeg->enda.x-DoubleSeg->endb.x != 0)
+	 				theta = atan(double((DoubleSeg->enda.y-DoubleSeg->endb.y)/double(DoubleSeg->endb.x-DoubleSeg->enda.x)));
+				else
+					theta = _PI/2;
+				
+				if (theta < 0)
+					theta += _PI;
+				
+				DoubleSeg->theta = theta;
+			}
+
+			DoubleSeg->width = (int)floor(random2()*(W_MAX-W_MIN)+W_MIN+0.5); //KDW
+			DoubleSeg->endb_L_Num = 0;
+			DoubleSeg->enda_L_Num = 0;
+			DoubleSeg->enda_C_Num = 0;
+			DoubleSeg->endb_C_Num = 0;
+			double searchRatio = 0.25;
+			double g_Rio = 0;
+			Bad_IO(DoubleSeg, M ,&g_Rio);
+
+			double g_Rc =0.;
+			Bad_EO(NEIGHBOORHOOD,searchRatio,DoubleSeg,M,&g_Rc);
+
+			int img_num = 0;
+			double iterval = _PI/(RADIUS_SEGS);
+			while (DoubleSeg->theta > iterval )
+			{
+				img_num++;
+				iterval+=_PI/RADIUS_SEGS;
+			}
+			if (img_num >= int(RADIUS_SEGS))
+			img_num--;
+
+
+			double dterm =  dataterm_rec(img_seg, DoubleSeg,patch,patch_len,DoubleSeg->width, Matrix, prior_pen1,prior_pen2, img_height,img_width);
+
+
+			double Echange_from_neighboor = Echange_from_neighboors_born(M,DoubleSeg);
+
+			Echange = -(gamma_d*dterm) -w_d -(w_io*g_Rio) - (w_eo*g_Rc) -Echange_from_neighboor;
+			double exp_Echange = beta*exp(Echange);
+			
+
+			DoubleSeg->engergy_for_transition = beta*exp(-gamma_d*dterm-w_d-w_io*g_Rio-w_eo*g_Rc);
+			DoubleSeg->dataterm = dterm;
+			DoubleSeg->img_num = img_num;
+			
+			double R = pow(exp_Echange,1.0/T) *(M->p_d_d)* (2*n_f + n_s)/((M->p_d_b)*(n_d+1));
+			double r = random2();
+			if (r < MIN(1,R))
+			{
+				if (DoubleSeg->enda_C_Num * DoubleSeg->endb_C_Num != 100)
+				{
+
+					M->n_d++;
+					DoubleSeg->type = 2;
+		    		LinkedListInsert( M->link_d,M->n_d, DoubleSeg);  //this is a double segment
+					UpdateItsNeighboors_born_DoubleSeg(DoubleSeg,M);
+
+					M->Vo += dterm;
+					M->VRio += g_Rio;
+					M->VReo += g_Rc;
+
+				   #if INCLUDE_OPENCV_DOUBLE_SEG
+						
+						printf("Double Segment Birth Energy: %.2f\n", -Echange);
+						printf("g_Rrc: %.2f \n",(w_eo*g_Rc));
+						printf("Gamma: %.2f \n",gamma_d*dterm);
+						printf("Neighbors %.2f\n", Echange_from_neighboor);
+						printf("RIO %.2f\n",w_io*g_Rio);
+
+					#endif
+				}
+				else
+				{
+					free(DoubleSeg);
+					Echange = 0;
+				}	
+			}
+			else
+			{
+				free(DoubleSeg);
+				Echange = 0;
+			}
 		}
 		else
 		{
-			printf("add double seg wrong\n");	
 			free(DoubleSeg);
+			Echange = 0;
 		}
 	}
 	else
+	{
 		free(DoubleSeg);
+		Echange = 0;
 	}
-	else
-		free(DoubleSeg);
-	}
-	else
-		free(DoubleSeg);
 	free(end);
 	free(obj);
+	return Echange;
 }
 
-void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double T)
+
+double KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double T)
 {
 	double w_d = M->w_d;
 	double w_io = M->w_io;
@@ -603,6 +574,7 @@ void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double
 	int n_s = M->n_s;
 	int n_f = M->n_f;
 	int n_d = M->n_d;
+	double Echange = 0;
 
 	if (n_d != 0)
 	{
@@ -623,25 +595,41 @@ void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double
 		Bad_EO_death(NEIGHBOORHOOD,searchRatio,l,M,&g_Rc);
 
 		double Echange_from_neighboor = Echange_from_neighboors_death(M,l);
-#ifdef QUALITY_CANDY
-		double Echange = beta*exp(-gamma_d*l->dataterm-w_d-w_io*g_Rio-w_eo*g_Rc+Echange_from_neighboor);
-#else
-		double Echange = beta*exp(-gamma_d*l->dataterm-w_d-w_io*n_io-w_eo*n_eo+Echange_from_neighboor);
-#endif
 
-		if (Echange < 0.00000001)
-			Echange = 0.00000001;
+		Echange = -gamma_d*l->dataterm-w_d- w_io*g_Rio - w_eo*g_Rc +Echange_from_neighboor;
+		double exp_Echange = beta*exp(Echange);
 
-		double R = (M->p_d_b)*n_d/(pow(Echange,T) *(M->p_d_d) * (2*n_f + n_s));//* (2*n_f + n_s-1));
+		if (exp_Echange < 0.00000001)
+			exp_Echange = 0.00000001;
+
+		double R = (M->p_d_b)*n_d/(pow(exp_Echange,1.0/T) *(M->p_d_d) * (2*n_f + n_s));
 		double r = random2();
-
+		
 		if (r < MIN(1,R))
 		{
 		   pre->next = p->next;
 		   M->n_d--;
 		   UpdateItsNeighboors_death_DoubleSeg(l,M);
-		 
+
+		    #if INCLUDE_OPENCV_DOUBLE_SEG
+				printf("Double Segment Death Energy: %.2f\n", -Echange);
+				printf("g_Rrc: %.2f \n",(w_eo*g_Rc));
+				printf("Gamma: %.2f \n",gamma_d*l->dataterm);
+				printf("Neighbors %.2f\n", -Echange_from_neighboor);
+				printf("RIO %.2f\n",w_io*g_Rio);
+				display_only_one_double(img, img_height, img_width, l, 1);
+			#endif
+
+			M->Vo += -l->dataterm;
+			M->VRio += -g_Rio;
+			M->VReo += -g_Rc;
+
 		   free(l);
 		}
+		else
+		{
+			Echange = 0;
+		}
 	}
+	return (-Echange);
 }

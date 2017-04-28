@@ -3,11 +3,11 @@
 
 #include <opencv2/opencv.hpp>
 #include "util.h"
-#include "qualityCandy.h"
+#include "QualityCandy.h"
 
 
 void display_image_double(double **y,int rows, int cols, Candy *C);
-void display_only_one_double(double **y, int rows, int cols, lineObj *mp);
+void display_only_one_double(double **y, int rows, int cols, lineObj *mp, int color);
 
 
 #endif

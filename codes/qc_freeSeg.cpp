@@ -1,8 +1,10 @@
 #include "QualityCandy.h"
 
 
-#define COLS 285
-#define ROWS 59
+#if INCLUDE_OPENCV
+	#include "gui_functions.h"
+#endif
+
 
 void UpdateItsNeighboors_born_freeSeg (lineObj* seg, Candy* M)
 {
@@ -50,8 +52,23 @@ void UpdateItsNeighboors_death_freeSeg (lineObj* seg, Candy* M)
 
 
 
-
-void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,int test,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2, int **dilated_img)
+/* Adds a Free Segment and returns the change in energy */
+/*******************************************************
+Inputs: 													
+Candy:   		Linked List with Candy Objectss
+img  :   		Original Input Image in Double
+lm   :   		Birth Map
+img_seg: 		Original Input Image in int
+img_height: 	Input Image Heigth
+img_width:		Input Image Width
+T: 				System Temperature
+patch:			unused
+patch_len:		unused
+Matrix:			unused
+prior_pen1:		unused
+prior_pen2:		unused
+*********************************************************/
+double AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, int img_height, int img_width, double T,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2)
 {
 	
 	double w_f = M->w_f;
@@ -60,17 +77,18 @@ void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****
 	double beta = M->beta;
 	double gamma_d = M->gamma_d;
 	int n_f = M->n_f;
-
 	int img_num = 0;
 	double iterval = _PI/(RADIUS_SEGS);
+	double Echange = 0;
 
 
 	/* Create Free Seg*/
 	lineObj *freeSeg = (lineObj *)malloc(sizeof(lineObj));
 
 	/* Assign Dimensions and angle*/
+	int L_MIN_FREE_SEG = 1*L_MIN;
 	freeSeg->width = (int)floor(random2()*(W_MAX-W_MIN)+W_MIN+0.5);
-	freeSeg->len = (int)floor(random2()*(L_MAX-L_MIN)+L_MIN+0.5);
+	freeSeg->len = (int)floor(random2()*(L_MAX-L_MIN_FREE_SEG)+L_MIN_FREE_SEG+0.5);
 	freeSeg->theta = random2()*(THETA_MAX-THETA_MIN)+THETA_MIN;
 	
 	/* Random Location*/
@@ -90,14 +108,14 @@ void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****
 
 	freeSeg->len = (int)sqrt(double(DistSquare(freeSeg->endb,freeSeg->enda)));
 
-	if (freeSeg->len >= L_MIN)
+	if (freeSeg->len >= L_MIN_FREE_SEG)
 	{
 		freeSeg->x = (int)floor(0.5*(double(freeSeg->enda.x+freeSeg->endb.x))+0.5);
 		freeSeg->y = (int)floor(0.5*(double(freeSeg->enda.y+freeSeg->endb.y))+0.5);
 		if(lm[freeSeg->y][freeSeg->x]==0)
 		{
 			free(freeSeg);
-			return;
+			return 0;
 		}
 
 		freeSeg->endb_L_Num = 0;
@@ -110,23 +128,21 @@ void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****
 		double g_Rio = 0;
 		double g_Rc =0.;
 		
-		int n_io = Bad_IO(freeSeg, M,&g_Rio);
-		int n_eo = Bad_EO_freeSeg(NEIGHBOORHOOD,searchRatio,freeSeg,M,&g_Rc);
+		Bad_IO(freeSeg, M,&g_Rio);
+		Bad_EO_freeSeg(NEIGHBOORHOOD,searchRatio,freeSeg,M,&g_Rc);
 
-
-
-	//should add data term here, assume homogeneous Poisson 
-	//double dterm = dataterm(mid_img[img_num],freeSeg->enda,freeSeg->endb);
 
 		double dterm = dataterm_rec(img_seg, freeSeg,patch,patch_len,freeSeg->width, Matrix,prior_pen1, prior_pen2, img_height,img_width);
 	
-	
-		double Echange = beta*exp(-gamma_d*dterm - w_f - w_io*g_Rio -w_eo*g_Rc);
+		Echange = -gamma_d*dterm - w_f - w_io*g_Rio -w_eo*g_Rc;	
+		double exp_Echange = beta*exp(Echange);
+
 
 		freeSeg->dataterm = dterm;
-		freeSeg->engergy_for_transition = Echange;
+		freeSeg->engergy_for_transition = exp_Echange;
 
-		double R = pow(Echange,T) *(M->p_f_d)* (M->lambda) * (L_MAX-L_MIN) * (W_MAX-W_MIN) * (THETA_MAX-THETA_MIN)/((M->p_f_b)*(n_f+1));
+		double R = pow(exp_Echange,1.0/T) *(M->p_f_d)* (M->lambda) * (L_MAX-L_MIN_FREE_SEG) * (W_MAX-W_MIN) * (THETA_MAX-THETA_MIN)/( (M->p_f_b)*(n_f+1) );
+
 
 		double r = random2();
 		if (r < MIN(1,R))
@@ -137,20 +153,48 @@ void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****
 				freeSeg->type = 0;
 		 	   	LinkedListInsert( M->link_f,M->n_f, freeSeg);  //this is a free segment	
 				UpdateItsNeighboors_born_freeSeg(freeSeg,M);
+
+				
+				#if INCLUDE_OPENCV_FREE_SEG
+					printf("Free Segment Birth Energy Change: %.2f\n", Echange);		
+					display_only_one_double(img, img_height, img_width, freeSeg, 1);
+				#endif
+
+				M->Vo += dterm;
+				M->VRio += g_Rio;
+				M->VReo += g_Rc;
+				return Echange;
 			}
 			else
-		free(freeSeg);
+			{
+				free(freeSeg);
+				return 0;
+			}
 		}
 		else
+		{
 			free(freeSeg);
+			return 0;
+		}
 	}
 	else
 	{
 		free(freeSeg);
+		return 0;
 	}
 }
 
-void KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T)
+
+/* Kills a Free Segment and returns the change in energy */
+/*******************************************************
+Inputs: 													
+Candy:   		Linked List with Candy Objectss
+img  :   		Original Input Image in Double
+img_height: 	Input Image Heigth
+img_width:		Input Image Width
+T: 				System Temperature
+*********************************************************/
+double KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T)
 {
 	double w_f = M->w_f;
 	double w_io = M->w_io;
@@ -158,6 +202,7 @@ void KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T
 	double beta = M->beta;
 	double gamma_d = M->gamma_d;
 	int n_f = M->n_f;
+	double Echange = 0;
 
 
 	if (n_f != 0)
@@ -174,19 +219,20 @@ void KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T
 		lineObj *l = p->index;
 
 		double g_Rio = 0; 
-		int n_io = Bad_IO(l, M,&g_Rio);
+		Bad_IO(l, M,&g_Rio);
 		double searchRatio = 0.25;
 		double g_Rc =0.;
-		int n_eo = Bad_EO_freeSeg_death(NEIGHBOORHOOD,searchRatio,l,M,&g_Rc);
+		Bad_EO_freeSeg_death(NEIGHBOORHOOD,searchRatio,l,M,&g_Rc);
 
-		double Echange = beta*exp(-gamma_d*l->dataterm - w_f - w_io*g_Rio - w_eo*g_Rc);
-
-
-		if (Echange < 0.00000001)
-			Echange = 0.00000001;
+		Echange = -gamma_d*l->dataterm - w_f - w_io*g_Rio - w_eo*g_Rc;
+		double exp_Echange = beta*exp(Echange);
 
 
-		double R = (M->p_f_b)*n_f/(pow(Echange,T) *(M->p_f_d)* (M->lambda) * (L_MAX-L_MIN) * (W_MAX-W_MIN) * (THETA_MAX-THETA_MIN));
+		if (exp_Echange < 0.00000001)
+			exp_Echange = 0.00000001;
+
+		int L_MIN_FREE_SEG = 1*L_MIN;
+		double R = (M->p_f_b)*n_f/( (pow(exp_Echange,1/T) *(M->p_f_d)* (M->lambda) * (L_MAX-L_MIN_FREE_SEG) * (W_MAX-W_MIN) * (THETA_MAX-THETA_MIN)) );
 		
 		 
 		double r = random2();
@@ -196,7 +242,24 @@ void KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T
 		   M->n_f--;
 		   UpdateItsNeighboors_death_freeSeg(l,M);
 
-		   free(l);
+		     
+		   
+		   	#if INCLUDE_OPENCV_FREE_SEG
+				printf("Free Segment Death Energy Change: %.2f\n", -Echange);		
+				display_only_one_double(img, img_height, img_width, l, 1);
+			#endif
+
+			free(l);
+
+			M->Vo += -l->dataterm;
+			M->VRio += -g_Rio;
+			M->VReo += -g_Rc;
+
+			return -Echange;
+
 		}
+		return 0.0;
 	}
+
+	return 0.0;
 }

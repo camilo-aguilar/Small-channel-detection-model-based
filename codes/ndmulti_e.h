@@ -14,6 +14,8 @@
 #include "util.h"
 #include "em.h"
 
+#include "Parameters.h"
+
 #define USE_BIRTHMAP
 #define MAX_MKPNT_NUM		1000//220		// Max marked point number
 //#define SIMPLE_CH
@@ -113,62 +115,6 @@ typedef struct neckdent
 	double			e[ERR_NUM];
 } NeckDent;
 
-typedef struct mpp_parameters
-{
-	// fixed
-	int			hard_repulsion;
-	double		gaussian_tau;
-	int			widthmin;
-	int			widthmax;
-	int			lengthmin;
-	int			lengthmax;
-	double		dent_l_w_ratio; 
-	double		lambda_e;
-	double		lambda_a;
-	double		lambda_l;
-	double		lambda_s;
-	double		lambda_nc;
-	double		lambda_dc;
-	double		lambda_int;
-	double		length_th;
-	double		symmetry_th;
-	double		p_birth;
-	double		p_death;
-	double		p_translation;
-	double		p_dilation;
-	double		p_rotation;
-	double		p_switching;
-	// Quality Candy
-	double		gamma_d;
-	double		w_eo;
-	double		w_f;
-	double		w_s;
-	double		w_d;
-	double		w_io;
-
-	// unfixed
-	int			test;				// 0: non-test 1:single energy test
-	int			optimization_type;	// 0:RJMCMC, 1:Multiple Birth and Death
-	int			fixed_param_num;	// 0:synthetic,	1:BSEImage free angle, 2:BLEImage fixed angle 3:slice_crop
-	double		alm;	// RJMCMC
-	double		b_zero; // multiple birth and death
-	double		T0;
-	double		betampp;
-	double		vk;		// RJMCMC
-	double		delta;	// multiple birth and death
-	double		alpha;
-	double		de_coeff;
-	int			nd_type_num;
-	double		amp_th;
-	double		error_th;
-	int			iter_num;
-	// etc
-	double		mean[MAX_CLASSES];
-	double		vari[MAX_CLASSES];
-	double		**blur;
-	int			blur_size;
-	double		sigma;
-} MPP_Parameters;
 
 
 int nd_mpp_rjmcmc(unsigned char **yimg, double **lm, double *mean, double *vari, 

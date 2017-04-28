@@ -1,6 +1,6 @@
 
 #include "gui_functions.h"
-#include "qualityCandy.h"
+#include "QualityCandy.h"
 
 /* In case OPENCV is installed. Heps for Debugging*/
 	// Load Image to the Image memory
@@ -62,15 +62,15 @@ void DrawCandyLine(IplImage *image, lineObj *mp, int i, CvScalar color, int text
 	double shear = 0.2;
 	int line_type = 8;
 	CvFont font1;
-//	CvScalar red = CV_RGB(255,0,0);
-	CvScalar yellow = CV_RGB(255,255,0);
+
+	
 	CvScalar white = CV_RGB(255,255,255);
-	CvScalar green = CV_RGB(0,255,0);
-	CvScalar yellowgreen = CV_RGB(125,255,0);
+	
+	
 	CvScalar orange = CV_RGB(255,160,0);
 	CvScalar cyan = CV_RGB(0,255,255);
 	int font_thickness = 0;
-	int connectivity = 8;
+	
 
 	cvInitFont(&font1,CV_FONT_HERSHEY_DUPLEX,hscale,vscale,shear,font_thickness,line_type);
 
@@ -80,24 +80,7 @@ void DrawCandyLine(IplImage *image, lineObj *mp, int i, CvScalar color, int text
 	endb.y = mp->endb.y*SCALE;
 	cvLine( image, enda, endb, color,line_thickness,8,0);
 
-	/*
-	enda.x = (mp->enda.x - mp->width/2*sin(mp->theta))*SCALE;
-	enda.y = (mp->enda.y - mp->width/2*cos(mp->theta))*SCALE;
-	endb.x = (mp->endb.x - mp->width/2*sin(mp->theta))*SCALE;
-	endb.y = (mp->endb.y - mp->width/2*cos(mp->theta))*SCALE;
-//	cvLine( image, enda, endb, orange,line_thickness,8,0);
-	enda.x = (mp->enda.x + mp->width/2*sin(mp->theta))*SCALE;
-	enda.y = (mp->enda.y + mp->width/2*cos(mp->theta))*SCALE;
-	endb.x = (mp->endb.x + mp->width/2*sin(mp->theta))*SCALE;
-	endb.y = (mp->endb.y + mp->width/2*cos(mp->theta))*SCALE;
-//	cvLine( image, enda, endb, orange,line_thickness,8,0);
-	enda.x = mp->enda.x*SCALE;
-	enda.y = mp->enda.y*SCALE;
-	endb.x = mp->endb.x*SCALE;
-	endb.y = mp->endb.y*SCALE;
-//	cvCircle(image, enda, NEIGHBOORHOOD*SCALE, cyan, line_thickness,8,0);
-//	cvCircle(image, endb, NEIGHBOORHOOD*SCALE, cyan, line_thickness,8,0);
-	*/
+
 	pt1.x = (int)((float)enda.x + (float)endb.x)/2.0;
 	pt1.y = (int)((float)enda.y + (float)endb.y)/2.0;
 
@@ -214,18 +197,21 @@ void display_image_double(double **y, int rows, int cols, Candy *C)
 
 }
 
-void display_only_one_double(double **y, int rows, int cols, lineObj *mp)
+void display_only_one_double(double **y, int rows, int cols, lineObj *mp, int color)
 {
 	IplImage *img = NULL;
 	int channel = 3;
 	CvScalar green = CV_RGB(0,0,255);
+	CvScalar red = CV_RGB(255,0,0);
 
 	img = cvCreateImage(cvSize(cols,rows),IPL_DEPTH_8U, channel);
 
 	LoadImageFromMemoryDouble(img, y);
 
-	DrawCandyLine(img, mp, 0, green,  TEXT_SINGLE_E, 1);
-
+	if(color == 1)
+		DrawCandyLine(img, mp, 0, green,  TEXT_SINGLE_E, 1);
+	else
+		DrawCandyLine(img, mp, 0, red,  TEXT_SINGLE_E, 1);
 
 	cvNamedWindow("FreeSeg");
 	cvShowImage("FreeSeg", img);

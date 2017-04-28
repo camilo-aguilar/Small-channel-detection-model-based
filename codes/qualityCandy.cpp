@@ -8,7 +8,7 @@
 
 
 #define DEBUG_CAMILO 0
-#define INCLUDE_OPENCV_END 1
+#define INCLUDE_OPENCV_END 0
 
 #if INCLUDE_OPENCV
 	#include "gui_functions.h"
@@ -159,6 +159,8 @@ Candy* CandyInit(MPP_Parameters mpp)
 	C->beta = 1;					//Beta
 	C->lambda = 1.0/Constant_For_Normalizing_Lambda;					//Lambda
 
+
+
 	C->link_d = LinkedListInit();	//Double Seg Links
 	C->link_f = LinkedListInit();	//Free Seg Links
 	C->link_s = LinkedListInit();	//Single Seg Links
@@ -205,6 +207,11 @@ Candy* CandyInit(MPP_Parameters mpp)
 	C->p_f = P_PICK_F; 					/* Free (B&D) */
 	C->p_s = P_PICK_S ;  					/* Single */
 	C->p_d = P_PICK_D ;  					/*Double */
+
+	C->energy = 0;
+	C->Vo = 0;
+	C->VRio = 0;
+	C->VReo = 0;
 
 	return C;
 }
@@ -253,8 +260,6 @@ int DrawEach_Seg(int **input_img,Node *obj, int height, int width, double *mu, d
 				return 0;
 		}
 	}
-	int new_x = int(start_end.x -3 *cos(theta));
-	int new_y = int(start_end.y+3*sin(theta));
 
 	offset = drawRect(patch,patch_len,start_end.y,start_end.x,len,theta,upper_w,lower_w);
 
@@ -407,8 +412,14 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 {
 
 	int mp_num = 0;
+	double Echange = 0;
 
+	FILE *energy_log_file;
 
+ 	if ( ( energy_log_file = fopen ( "Energy.txt", "wb") ) == NULL ) {
+    fprintf ( stderr, "cannot open file Energy.txt\n");
+    exit ( 1 );
+  	}
 
 	struct TIFF_img inter_img_mrf;
 
@@ -476,21 +487,40 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 		
 	 }
 	
-	int test = 0;
 	clock_t start_time=clock();
 
 	T = mpp.T0;
 	printf("Start RJMCMC\n");
 	for (int i = 0;i<mpp.iter_num;i++)
 	{
+		double E1 = C->energy;
+		double E2 = -1* ((C->Vo*C->gamma_d) + (C->VReo*C->w_eo) + (C->VRio*C->w_io) + (C->n_s*C->w_s) + (C->n_f*C->w_f) + (C->n_d * C->w_d));
 		#if INCLUDE_OPENCV
-			if(C->n_f + C->n_s + C->n_d)
-				if(i%(mpp.iter_num/100)==0)
-				{					
+				if(Echange)//i%(mpp.iter_num/NUM_WINDOWS)==0)
+				{						
+					
+					printf("\n1:%.2f\n", E1);
+					printf("2:%.2f\n", E2);
+					
+					//printf("2:%.2f\n", (-C->Vo*C->gamma_d) - ((double)C->n_f*C->w_f));
 					display_image_double(input_img, height, width, C);
+					
+				}
+		#else
+				if(i%(mpp.iter_num/NUM_WINDOWS)==0)
+				{						
+
 				}
 		#endif
 
+		if(fabs(E1 - E2) > 0.0001 && 0)
+		{
+			printf("Error in Energies");
+			printf("\n1:%.2f\n", E1);
+			printf("2:%.2f\n", E2);
+			exit(1);
+		}
+		Echange = 0;
 		if(i > 0 && i % (mpp.iter_num/10) == 0) 
 		{
 			printf(" %2.2f Percent of Iterations Completed \n", (float)i/(float)mpp.iter_num * 100.00);
@@ -509,102 +539,100 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 			double rr = random2();
 			double rrr = random2();
 
-			if(C->n_f==0)
-			{
-				rr = 0;
-				rrr=0;
-			}
-
+				
 			if (rr < C->p_f)  // free segment
 			{
+
+
 				if (rrr < C->p_f_b)
 				{
-					#if DEBUG_CAMILO
-						printf("Add Free Seg: %d \n", i);
-					#endif
-				
-					AddFreeSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,1.0/T,test,patch,patch_len, Matrix, prior_pen1, prior_pen2,dilated_img);
-					test++;
+					Echange = AddFreeSeg(C,input_img,lm,output_seg,height,width,T,patch,patch_len, Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
 				}
 				else
 				{
-					#if DEBUG_CAMILO
-						printf("Kill Free Seg: %d \n", i);
-					#endif
 
-					KillFreeSeg(C,input_img,height,width,1.0/T);
+					Echange = KillFreeSeg(C,input_img,height,width,T);
+					C->energy = C->energy + Echange; 
+
 				}
 			}
 			else if (rr < C->p_s+C->p_f)  //single segment
 			{
 				if (rrr < C->p_s_b)
 				{
-					#if DEBUG_CAMILO
-						printf("Add Single Seg: %d\n", i);
-					#endif
-
-					AddSingleSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,1.0/T,patch,patch_len, Matrix, prior_pen1, prior_pen2);
+					Echange =AddSingleSeg(C,input_img,lm,output_seg, img_mpp_l,img_seg_l,height,width,T,patch,patch_len, Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
 				}
 				else
 				{
-					#if DEBUG_CAMILO
-						printf("Kill Single Seg: %d\n", i);
-					#endif
-					//KillSingleSeg_allends(C,input_img,height,width,1.0/T);
-					KillSingleSeg(C,input_img,height,width,1.0/T);
+					Echange = KillSingleSeg(C,input_img,height,width,T);
+					C->energy = C->energy + Echange;
 				}
 			}
 			else
 			{
 				if (rrr < C->p_d_b)
 				{
-					#if DEBUG_CAMILO
-						printf("Add Double Seg: %d\n", i);
-					#endif
-					//AdddoubleSeg_allends(C,input_img,height,width,1.0/T);
-					AdddoubleSeg(C,input_img,lm,output_seg,img_mpp_l,img_seg_l,height,width,1.0/T,patch,patch_len, Matrix, prior_pen1, prior_pen2,0);
+					Echange = AdddoubleSeg(C,input_img,lm,output_seg,img_mpp_l,img_seg_l,height,width,T,patch,patch_len, Matrix, prior_pen1, prior_pen2,0);
+					C->energy = C->energy + Echange;
 				}
 				else
 				{
-					#if DEBUG_CAMILO
-						printf("Kill Double Seg: %d\n", i);
-					#endif
-					//KillDoubleSeg_allends(C,input_img,height,width,1.0/T);
-					KillDoubleSeg(C,input_img,height,width,1.0/T);
+
+					Echange = KillDoubleSeg(C,input_img,height,width,T);
+					C->energy = C->energy + Echange;
 				}
 			}
+			/* End Birth/Death Kernel */
 		}
-		else if (r <C->p_b_d +C->p_t)   //transition step
+		else if (r <C->p_b_d +C->p_t)
 		{
-			#if DEBUG_CAMILO
-				printf("Translation: %d\n", i);
-			#endif
-
+			/* Transition Kernel */
+			
 			double rr = random2();
 			double rrr = random2();
 			if (rr < C->p_t_f)
 			{
 				if (rrr < 0.2)
-					FreeSeg_length_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				{
+					Echange = FreeSeg_length_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
+				}
 				else if (rrr< 0.4)
-					FreeSeg_theta_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				{
+					Echange = FreeSeg_theta_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
+				}
 				else  if (rrr< 0.6) //KDW 
-					FreeSeg_width_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,1.0/T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				{
+					Echange = FreeSeg_width_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height,width,T,patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
+				}
 				else  if (rrr< 0.8)  //KDW
-					FreeSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				{
+					Echange = FreeSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
+				}
 				else //KDW
-					FreeSeg_center_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				{
+					Echange = FreeSeg_center_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+					C->energy = C->energy + Echange;
+				}
+
+				/* End of Transition Kernel */
 
 			}
 			else if (rr < C->p_t_s+C->p_t_f)
 			{
-				 SingleSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				Echange = SingleSeg_freeEnd_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				C->energy = C->energy + Echange;
 
 			}
 			else  // no disconnect & move
 			{
-				 SingleDoubleSeg_Connection_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, 1.0/T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
-				 
+				Echange = SingleDoubleSeg_Connection_move(C, input_img, output_seg, img_mpp_l,img_seg_l, height, width, T, patch,patch_len,Matrix, prior_pen1, prior_pen2);
+				C->energy = C->energy + Echange;
 			}
 		}
 		else   //connetion and separation step
@@ -623,9 +651,20 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 		}
 
 		T = T*(mpp.de_coeff); 
+		if(T<0.00000000001)
+		{
+			printf("Warning, Temperature Reached 0\n");
+			break;
+		}
+
+		if(i%(mpp.iter_num/NUM_WINDOWS)==0)
+		{
+			//fprintf(energy_log_file,"%.5f\n",C->energy);
+		}	
 
 	}
-	
+	fprintf(energy_log_file,"%.5f\r\n %.5f\r\n %.5f\r\n %d\r\n %d\r\n %d\r\n",C->Vo, C->VRio, C->VReo, C->n_f,C->n_s,C->n_s);
+	fclose(energy_log_file);
 
 	#if INCLUDE_OPENCV_END
 	display_image_double(input_img, height, width, C);
@@ -991,8 +1030,7 @@ void LinkedListInsert(LinkedList L,int i, lineObj* x)
     p->index = x; 
     p->next = pre->next;
     pre->next = p;
-     
-   // return L;                           
+                             
 } 
 
 void LinkedListDelete(LinkedList L,lineObj* x)
@@ -1022,6 +1060,18 @@ lineObj* ReturnObj (LinkedList L, int i)
 	return ((pre->next)->index);
 }
 
+/*******************************************************
+GenerateEndb
+Give Enda, it generates another end at location enda + length
+in theta direction
+
+Inputs: 													
+enda       : First end
+len        : Length for new segment
+theta      : Theta for new segment
+img_height : Input Image Height
+img_width  : Input Image Width
+*********************************************************/
 site GenerateEndb(site enda,int len,double theta,int img_height,int img_width)
 {
 	site end;
@@ -1090,62 +1140,113 @@ site GenerateEndb(site enda,int len,double theta,int img_height,int img_width)
 	return end;
 }
 
-
+/* 
+	Return Distance Squared  between points a and b
+*/
 int DistSquare(site a, site b)
 {
 	return((a.x - b.x)*(a.x - b.x)+(a.y - b.y)*(a.y - b.y));
 }
 
 
+/*******************************************************
+Check Connection:
+Given 2 segments seg1:(a-b) and seg2:(aa-bb), checks if dist(a,aa)/dist(a,bb)/dist(b,aa)/dist(b,bb)
+are within |neighboorR| of each other.
+If so, then checks if seg2 is included in the ball of radious |neighboorR| of the node a/b of seg1 (or if seg1 
+is included in the ball of radious |neighboorR| of node aa/bb of seg 2)
+
+Inputs:
+	site a 		: Coordinates x,y of point a of seg1.
+	site b 		: Coordinates x,y of point b of seg1.
+	site aa 	: Coordinates x,y of point aa of seg2.
+	site bb 	: Coordinates x,y of point bb of seg2.
+	searchRatio : Radious of search as a proportion to min(|seg1|,|seg2|).  
+	neighboorR 	: Radious of search as a fixed quantity.
+
+Outputs:
+	if_eo 				  : 
+							Returns 1 if dist(a,aa)/dist(a,bb)/dis(b,aa)/dist(b,bb) is small
+	if_connect 			  : 
+							Returns 1 if dist(a,aa) or dist(a,bb) is small 
+							Returns 2 if dist(b,aa) or dist(b,bb) is small
+							Returns 0 otherwise 
+
+	which_end_is_neighboor: 
+							Returns 1 if ONLY dist(a,aa)/dist(a,bb) is small
+							Returns 2 if ONLY dist(b,aa)/dist(b,bb) is small
+							Returns 3 if more than one dis(x,y) is small. 
+Returns:
+	Minimun distance between (a,b) and (aa,bb)
+*********************************************************/
+
 double CheckConnection(site a, site b, site aa, site bb, double searchRatio, int neighboorR,int *if_eo,
 					 int *if_connect, int *which_end_is_neighboor)
 {
+
+	*which_end_is_neighboor = 0;
+	
 	double len_a = sqrt(double(DistSquare(a,b)));
 	double len_aa = sqrt(double(DistSquare(aa,bb)));
 	double dist;
-
 	int searchR = int(MIN(len_a,len_aa)*searchRatio);
-	*which_end_is_neighboor = 0;
-	//if (searchR <= 5)
-	//KDW	searchR = 5;
-	if (searchR == 0) //KDW
-		searchR = 1; //KDW
+	
+	if (searchR == 0) 
+		searchR = 1; 
 
 	searchR = neighboorR;
 
-	if ((dist = DistSquare(a,aa)) < searchR*searchR )//&& DistSquare(a,bb) > searchR*searchR )
+	//1 Check if distance between node a and aa is less than searchR
+	if ((dist = DistSquare(a,aa)) < searchR*searchR )
 	{
 		*if_eo = 1;
+
+		//Check if they are connected
 		if ((a.x == aa.x) && (a.y == aa.y))
 			*if_connect = 1;
 
+		//Check if distance between node a and bb is more than searchR
+		//Otherwise segment (aa-bb) is included in ball searchR around (a-b)
 		if (DistSquare(a,bb) > searchR*searchR)
+		{
+			//Check if distance between node b and aa is more than searchR
+			//Otherwise segment (a-b) is included in ball searchR around (aa-bb)
 			if (DistSquare(b,aa) > searchR*searchR)
 				*which_end_is_neighboor = 1;
 			else
-				*which_end_is_neighboor = 3; //KDW 3 5
+				*which_end_is_neighboor = 3; 
+		}
 		else
-			*which_end_is_neighboor = 3; //KDW 3 5
+		{
+			*which_end_is_neighboor = 3; 
+		}
 	}
-	else if ((dist = DistSquare(a,bb)) < searchR*searchR)// && DistSquare(a,aa) > searchR*searchR )
+	//2 Check if distance between node a and bb is less than searchR
+	else if ((dist = DistSquare(a,bb)) < searchR*searchR)
 	{
 		*if_eo = 1;
 		if((a.x == bb.x)&&(a.y == bb.y))
-			*if_connect = 1; //KDW 1 2
+			*if_connect = 1; 
 
+		//Check if distance between node a and aa is more than searchR
+		//Otherwise segment (aa-bb) is included in ball searchR around (a-b)
 		if (DistSquare(a,aa) > searchR*searchR)
 			if (DistSquare(b,bb) > searchR*searchR)
 				*which_end_is_neighboor = 1;
 			else
-				*which_end_is_neighboor = 3; //KDW 3 5
+				*which_end_is_neighboor = 3; 
 		else
-			*which_end_is_neighboor = 3; //KDW 3 5
+			*which_end_is_neighboor = 3; 
 	}
-	else if ((dist = DistSquare(b,aa)) < searchR*searchR)// && DistSquare(b,bb) > searchR*searchR )
+
+	//3 Check if distance between node b and aa is less than searchR
+	else if ((dist = DistSquare(b,aa)) < searchR*searchR)
 	{
 		*if_eo = 1;
+
+		//Check if they are connected
 		if((b.x == aa.x) && (b.y == aa.y))
-			(*if_connect) = 2; //KDW 2 3
+			(*if_connect) = 2; 
 
 		if (DistSquare(b,bb) > searchR*searchR)
 			if (DistSquare(a,aa) > searchR*searchR)
@@ -1434,6 +1535,15 @@ double theta_from_two_ends(site enda, site endb)
 	return theta;
 }
 
+/*******************************************************
+if_connect_a_freeEnd
+Checks in end is connected to a free end of object obj
+
+Inputs: 													
+	end   : End Connecting to Object
+	obj   : Line Object where end is connecting to
+
+*********************************************************/
 int if_connect_a_freeEnd(site end, lineObj *obj)
 {
 	int n = 0;
@@ -1467,6 +1577,18 @@ int if_connect_a_connectedEnd(site end, lineObj *obj)
 
 	return n;
 }
+
+
+/*******************************************************
+Echange_from_neighboors_born
+Once a line object is born, it changes the state of its neighbors
+		ie. change free segment to single segment
+
+	Inputs: 													
+		M     : Linked List With All Objects.
+		obj   : New object to be added. 
+ 
+*********************************************************/
 double Echange_from_neighboors_born(Candy *M, lineObj *obj)
 {
 	double w_s = M->w_s;
@@ -1479,20 +1601,30 @@ double Echange_from_neighboors_born(Candy *M, lineObj *obj)
 		for (int i = 0;i<obj->enda_C_Num;i++)
 		{
 			if(obj->enda_C[i]->type == 0)  //a previous freeseg now changes to single
+			{
 				Echange += w_s-w_f;
-			if(obj->enda_C[i]->type == 1)
+			}
+			else if(obj->enda_C[i]->type == 1)
 			{
 				if (if_connect_a_freeEnd(obj->enda,obj->enda_C[i]) == 1)  //a previous singseg now changes to double
 					Echange += w_d-w_s;
 			}
+			else if(obj->enda_C[i]->type == 2)
+			{
+				Echange +=0;
+			}
+
 		}
 	}
+
 	if (obj->endb_C_Num != 0)
 	{
 		for (int i = 0;i<obj->endb_C_Num;i++)
 		{
 			if(obj->endb_C[i]->type == 0)  //a previous freeseg now changes to single
+			{
 				Echange += w_s-w_f;
+			}
 			if(obj->endb_C[i]->type == 1)
 			{
 				if (if_connect_a_freeEnd(obj->endb,obj->endb_C[i]) == 1)  //a previous singseg now changes to double
@@ -1500,7 +1632,6 @@ double Echange_from_neighboors_born(Candy *M, lineObj *obj)
 			}
 		}
 	}
-	//Echange = 0;
 	return Echange;
 }
 

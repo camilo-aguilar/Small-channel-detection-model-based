@@ -46,27 +46,51 @@ void KillNClinks(NClinks *l, lineObj *obj1, lineObj *obj2)
 	free(p);
 }
 
+/*
+NC_pairs:
+Takes obj1 and obj2 and outputs the ends of obj1 and obj2 that are within r =|NEIGHBOORHOOD| 
+of distance
+
+	Inputs:
+	 	obj1: Object 1 to be compared
+	 	obj2: Object 2 to be compared
+
+	Outputs:
+		end1: Node in object 1 within r of node in object 2
+		end2: Node in object 2 within r of node in object 1
+
+*/
 void NC_pairs(lineObj *obj1, lineObj *obj2,site *end1, site *end2)
 {
+	//CGA: Compare A in seg1 vs A in seg2 
 	if(DIST(obj1->enda.x,obj1->enda.y,obj2->enda.x,obj2->enda.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
 	{
 		*end1 = obj1->enda;
 		*end2 = obj2->enda;
 	}
-	if(DIST(obj1->endb.x,obj1->endb.y,obj2->enda.x,obj2->enda.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
+	//CGA: Compare B in seg1 vs B in seg2
+	else if(DIST(obj1->endb.x,obj1->endb.y,obj2->endb.x,obj2->endb.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
+	{
+		*end1 = obj1->endb;
+		*end2 = obj2->endb;
+	}
+	//CGA: Compare B in seg1 vs A in seg2
+	else if(DIST(obj1->endb.x,obj1->endb.y,obj2->enda.x,obj2->enda.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
 	{
 		*end1 = obj1->endb;
 		*end2 = obj2->enda;
 	}
-	if(DIST(obj1->enda.x,obj1->enda.y,obj2->endb.x,obj2->endb.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
+	//CGA: Compare A in seg1 vs B in seg2
+	else if(DIST(obj1->enda.x,obj1->enda.y,obj2->endb.x,obj2->endb.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
 	{
 		*end1 = obj1->enda;
 		*end2 = obj2->endb;
 	}
-	if(DIST(obj1->endb.x,obj1->endb.y,obj2->endb.x,obj2->endb.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
+
+	else
 	{
-		*end1 = obj1->endb;
-		*end2 = obj2->endb;
+		//do nothing
+		//Shouln't happen since its taking two connected objects
 	}
 }
 
@@ -148,7 +172,6 @@ int Conncet_freeEnds(Candy *M, double **img, int **img_seg, double ****img_mpp_l
 {
 	double w_f = M->w_f;
 	double w_s = M->w_s;
-	double w_d = M->w_d;
 	double w_io = M->w_io;
 	double w_eo = M->w_eo;
 	double beta = M->beta;
@@ -242,9 +265,9 @@ int Conncet_freeEnds(Candy *M, double **img, int **img_seg, double ****img_mpp_l
 	double g_Rc =0.;
 	double g_Rc_before =0.;
 	int n_io = Bad_IO_freeEndsC(new_seg, obj1, M,&g_Rio);
-	int n_eo = Bad_EO_freeEndsC(NEIGHBOORHOOD,searchRatio,new_seg,M,obj1,&g_Rc);
-	int n_io_before = Bad_IO(obj1, M,&g_Rio_before);
-	int n_eo_before = Bad_EO_death(NEIGHBOORHOOD,searchRatio,obj1,M,&g_Rc_before);
+	Bad_EO_freeEndsC(NEIGHBOORHOOD,searchRatio,new_seg,M,obj1,&g_Rc);
+    Bad_IO(obj1, M,&g_Rio_before);
+	Bad_EO_death(NEIGHBOORHOOD,searchRatio,obj1,M,&g_Rc_before);
 
 	//should add data term here, assume homogeneous Poisson 
 	int img_num = 0;
@@ -259,7 +282,6 @@ int Conncet_freeEnds(Candy *M, double **img, int **img_seg, double ****img_mpp_l
 
 	if (img_num >= int(RADIUS_SEGS))
 		img_num--;
-	int w_num = new_seg->width-W_MIN;
 	//double dterm = dataterm_double(mid_img[img_num],new_seg->enda,new_seg->endb);
 	double dterm = dataterm_rec(img_seg, new_seg,patch,patch_len,new_seg->width, Matrix, prior_pen1,prior_pen2, img_height,img_width);
 	double w = 0;
@@ -432,9 +454,9 @@ int Seperate_connectedEnds(Candy *M, double **img, int **img_seg, double ****img
 	double g_Rc =0.;
 	double g_Rc_before =0.;
 	int n_io = Bad_IO_freeEndsC(new_seg, obj1, M,&g_Rio);
-	int n_eo = Bad_EO_freeEndsC(NEIGHBOORHOOD,searchRatio,new_seg,M,obj1,&g_Rc);
-	int n_io_before = Bad_IO(obj1, M,&g_Rio_before);
-	int n_eo_before = Bad_EO_death(NEIGHBOORHOOD,searchRatio,obj1,M,&g_Rc_before);
+	Bad_EO_freeEndsC(NEIGHBOORHOOD,searchRatio,new_seg,M,obj1,&g_Rc);
+	Bad_IO(obj1, M,&g_Rio_before);
+	Bad_EO_death(NEIGHBOORHOOD,searchRatio,obj1,M,&g_Rc_before);
 
 	//should add data term here, assume homogeneous Poisson 
 	int img_num = 0;
@@ -449,7 +471,7 @@ int Seperate_connectedEnds(Candy *M, double **img, int **img_seg, double ****img
 
 	if (img_num >= int(RADIUS_SEGS))
 		img_num--;
-	int w_num = new_seg->width-W_MIN;
+	//int w_num = new_seg->width-W_MIN;
 	//double dterm = dataterm_double(mid_img[img_num],new_seg->enda,new_seg->endb);
 	double dterm = dataterm_rec(img_seg,new_seg,patch,patch_len,new_seg->width,Matrix, prior_pen1, prior_pen2, img_height,img_width);
 	double w = 0;

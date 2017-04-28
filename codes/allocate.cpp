@@ -137,7 +137,7 @@ void *multialloc(size_t s, int d, ...)
 void multifree(void *r,int d)
 {
         void **p;
-        void *next;
+        void *next = NULL;
         int i;
 
         for (p = (void **)r, i = 0; i < d; p = (void **) next,i++)

@@ -412,7 +412,7 @@ double avg_t_test(unsigned char **y, int cols, int rows, double mean0, double va
 	int num_1ch = 0, num_2ch = 0, num_3ch = 0;
 	int num_n1ch = 0, num_n2ch = 0;
 	double di, dj, w, l;
-	double w_5, l_5, tau = gaussian_tau;
+	double w_5, l_5;
 	double dtmp, dtmp2;
 	double sum_all = 0, sum_all2 = 0, sum_s = 0;
 	double sum_ch = 0, sum_ch2 = 0;
@@ -649,7 +649,7 @@ double avg_t_test_neck(unsigned char **y, int cols, int rows, double mean0, doub
 	int num_n1ch = 0, num_n2ch = 0;
 	int num_s = 0;
 	double di, dj, w, l;
-	double w_5, l_5, tau = gaussian_tau;
+    double w_5, l_5;
 	double dtmp, dtmp2;
 	double sum_all = 0, sum_all2 = 0;
 	double sum_ch = 0, sum_ch2 = 0;
@@ -1010,7 +1010,7 @@ double avg_t_test_dent(unsigned char **y, int cols, int rows, double mean0, doub
 	int num_n1ch = 0 , num_n2ch = 0, num_n3ch = 0;
 	int num_s = 0;
 	double di, dj, w, l;
-	double w_5, l_5, tau = gaussian_tau;
+    double w_5, l_5;
 	double dtmp, dtmp2, dtmp3, dtmp4;
 	double sum_all = 0, sum_all2 = 0;
 	double sum_ch = 0, sum_ch2 = 0;
@@ -3358,8 +3358,8 @@ double intersection_area(DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4,
 #define LAMBDA_CONNECTION 1
 int C_prior (NeckDent *mp, int k, int np_num, double epsilon, double **inter_e)
 {	
-	int i,m=0;
-	double dtmp, dtmp2, a, b, norm = exp((double)TAU_INT)-1;
+	int i;
+	double dtmp, dtmp2, a, b;
 	double theta_diff;
 	double d1=0,d2, d3, d4;
 	DPoint epi1, epi2, epj1, epj2;
@@ -4323,7 +4323,6 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 	double birth_rate, d_beta, d_rate;
 	double epsilon = HARDCORE_REPULSION;
 	int np_num;
-	char filename[1024];
 	double **inter_e, total_energy;
 	double betampp = mpp.betampp;
 	double delta = 0.9;

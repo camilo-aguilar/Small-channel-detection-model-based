@@ -10,6 +10,93 @@
 #endif
 
 
+#define GAUSS_FILTER_LENGTH 5
+
+
+
+/*
+	Filters Image at (i,j) with Rotated Combination of Filter_x, Filter_y as:
+	[cos(theta) sin(theta); -sin(theta) cos(theta) ][Filter_x Filter_y]^T
+*/
+double im_filter(int **img_seg, int rows, int cols, double theta, int i_coord, int j_coord)
+{
+#if 0
+	static double test_Gaus_x[GAUSS_FILTER_LENGTH][GAUSS_FILTER_LENGTH] = 
+{ {0.0058 ,   0.0261,   0.0431,   0.0261,   0.0058},
+  {0.0131,   0.0585,   0.0965,   0.0585,   0.0131},
+  {  0  ,       0 ,       0 ,        0,        0},
+  {-0.0131,   -0.0585,   -0.0965,   -0.0585,   -0.0131},
+   {-0.0058,   -0.0261,   -0.0431,   -0.0261,   -0.0058}
+};
+
+static double test_Gaus_y[GAUSS_FILTER_LENGTH][GAUSS_FILTER_LENGTH] = 
+{   {0.0058  ,  0.0131    ,     0  , -0.0131 ,  -0.0058},
+    {0.0261  ,  0.0585    ,     0  , -0.0585 ,  -0.0261},
+    {0.0431  ,  0.0965    ,     0  , -0.0965 ,  -0.0431},
+    {0.0261  ,  0.0585    ,     0  , -0.0585 ,  -0.0261},
+    {0.0058  ,  0.0131    ,     0  , -0.0131 ,  -0.0058}
+};
+#endif
+static double test_Gaus_xx[GAUSS_FILTER_LENGTH][GAUSS_FILTER_LENGTH] = 
+{
+	{0.0087 ,   0.0392   , 0.0646 ,   0.0392  ,  0.0087},
+    {     0   ,      0    ,     0   ,      0    ,     0},
+    {-0.0215 ,  -0.0965  , -0.1592  , -0.0965  , -0.0215},
+    {     0  ,       0  ,       0   ,      0    ,     0},
+    {0.0087  ,  0.0392 ,   0.0646   , 0.0392   , 0.0087}
+};
+
+static double test_Gaus_yy[GAUSS_FILTER_LENGTH][GAUSS_FILTER_LENGTH] = 
+{
+{    0.0087   ,      0 ,   -0.0215   ,      0 ,   0.0087},
+{    0.0392   ,      0 ,  -0.0965    ,     0  ,  0.0392},
+{    0.0646   ,      0 ,  -0.1592    ,     0  ,  0.0646},
+{    0.0392   ,      0 ,  -0.0965    ,     0  ,  0.0392},
+{    0.0087   ,      0 ,  -0.0215    ,     0  ,  0.0087}
+};
+
+static double test_Gays_xy[GAUSS_FILTER_LENGTH][GAUSS_FILTER_LENGTH] =
+{
+{ 0.0117    ,0.0261       ,  0 ,  -0.0261  , -0.0117},
+{    0.0261  ,  0.0585     ,    0 ,  -0.0585 ,  -0.0261},
+{         0  ,       0     ,    0  ,       0 ,        0},
+{   -0.0261  , -0.0585     ,    0  ,  0.0585 ,   0.0261},
+{   -0.0117  , -0.0261    ,     0  ,  0.0261 ,   0.0117}
+};
+
+	int i=0,j=0;
+	int x=0,y=0;
+	int filter_l = (GAUSS_FILTER_LENGTH-1.0)/2.0;
+	double sum = 0;
+	double result = 0;
+
+	double cos_t = cos(theta);
+	double sin_t = sin(theta);
+
+	for (i=-filter_l; i <= filter_l; i++)
+	{
+		for(j=-filter_l; j<= filter_l; j++)
+		{
+			x = i_coord-i;
+			if(x < 0)
+				x = rows -1 - i;
+			else if(x > rows-1)
+				x = -i -1;
+			
+			y =j_coord-j;
+			if(y < 0)
+				y = cols -1 -j;
+			else if(y > cols-1)
+				y = -j -1;
+
+			//sum += cos_t * test_Gaus_x[i+2][j+2]*(double)img_seg[x][y] + sin_t * test_Gaus_y[i+2][j+2]*(double)img_seg[x][y];		
+			sum += (255.00 - (double)img_seg[x][y]) * (cos_t*cos_t*test_Gaus_xx[i+2][j+2] - 4*sin_t*cos_t*test_Gays_xy[i+2][j+2] + sin_t*sin_t*test_Gaus_yy[i+2][j+2]);
+		}
+	}
+	result = sum;
+	return result;
+
+}
 
 
 site drawRect(double **patch, int patch_len, int y, int x, int L, double theta, int upper_w, int lower_w)
@@ -89,6 +176,7 @@ void subfill (double **tmpmask, int x, int y,int new_c )
 	}
 
 }
+ 
 
 
 #define STEP_DX					0.5
@@ -142,6 +230,10 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 	l_5 = l/2.;
 	cx = (double)line->x;
 	cy = (double)line->y;
+
+	double derivative_energy =0;
+	double derivative_threshold = DERIVATIVE_THRESHOLD;
+	double derivative_likely;
 
 	num = 0;
 
@@ -197,7 +289,7 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 
 	}
 
-	//Find Intensyty in Channel 2
+	//Find Intensyty in Channel 
 	di = 0;
 	di_sin_t = di*sin_t;
 	di_cos_t = di*cos_t;
@@ -207,6 +299,7 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 		pt.y = cy + dj_sin_t[i] - di_cos_t;
 		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
 		{
+			derivative_energy += im_filter(y, rows, cols, t, floor(pt.y+0.5), floor(pt.x + 0.5));
 			dtmp = real_coord(y,pt.y,pt.x);
 			sum_2ch += dtmp;
 			sum_2ch2 += dtmp*dtmp;
@@ -302,6 +395,14 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 		t_test = t_test1/(2*fmax(SYM_TH,sum_s/sum_all));//*sqrt(sum_all2)
 		//printf("T_test: %.2f Symmetry Error: %.2f \n", t_test,sum_s/sum_all);
 
+
+
+		if(derivative_energy <= derivative_threshold)
+			derivative_likely = 1- derivative_energy/derivative_threshold;
+		else
+			derivative_likely = exp(-(derivative_energy-derivative_threshold)/(derivative_energy))-1;
+
+
 		if (sum_nch<= sum_ch)
 		{
 			if(t_test < error_th)
@@ -314,7 +415,9 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 			likely = 1;
 		}
 
-
+		#if DERIVATIVE_LIKELY
+			likely = (0.95*likely + 0.05*derivative_likely)/2.0;
+		#endif
 
 		#if 0
 			lineObj freeSeg;
@@ -379,7 +482,7 @@ double dataterm_rec(int **img_seg, lineObj *line, double **patch, int patch_len,
 	e[26] = sum_s;
 	e[27] = 0;
 
-
+	patch[0][0] = derivative_energy;
 	return likely;
 
 }

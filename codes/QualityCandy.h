@@ -12,17 +12,18 @@
 
 
 
+
+
 #define QUALITY_CANDY
 
-#define MAX_CONNECTION_NUM  30
 #define MAX_NEAR_NUM		                30
 
 #define DELTA_MAX		0//0.4 //KDW 0.0
 #define PARRALLEL_RANGE  -1.0 //_PI/40
-#define TAU_MAX			_PI/4.0
+
 #define TAU_MAX_FREESEG	 _PI//KDW _PI/6.0
 #define DATATERM		exp(double(2))
-#define NEIGHBOORHOOD	2//5
+
 #define SEARCH_R 10
 
 #define I_WIDTH width
@@ -91,6 +92,9 @@ typedef struct lineObj
 	double std_ch;
 	double std_non_ch;
 
+	double bad_io;
+	double bad_eo;
+
 }lineObj;
 
 typedef struct Node
@@ -157,8 +161,15 @@ typedef struct
 	Neighbor_links neighbor_l;		/*list of neighbors*/
 	Connection_links connection_l;	/*list of connections*/
 
+	double Vo;
+	double VRio;
+	double VReo;
+	
 	double energy;
 }Candy;
+
+
+double im_filter(int **img_seg, int rows, int cols, double theta, int i_coord, int j_coord);
 
 Candy* CandyInit(MPP_Parameters mpp);
 void freeCandy(Candy *C);
@@ -174,31 +185,32 @@ void LinkedListInsert(LinkedList L,int i, lineObj* x);
 void LinkedListDelete(LinkedList L,lineObj* x);
 lineObj* ReturnObj (LinkedList L, int i);
 
-//void AddFreeSeg (Candy *M, double **img, double ***mid_img,int img_height, int img_width, double T,int test,double **patch, int patch_len);
-//void AddSingleSeg (Candy *M, double **img,double ***mid_img, int img_height, int img_width, double T,double **patch, int patch_len);
-//void AdddoubleSeg (Candy *M, double **img, double ***mid_img, int img_height, int img_width, double T,double **patch, int patch_len, int test);
 
-void AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,int test,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2,int **dilated_img);
-void AddSingleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2);
-void AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l, double ****img_seg_l,int img_height, int img_width, double T,double **patch, int patch_len , double ***Matrix, double prior_pen1, double prior_pen2, int test);
-void KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T);
-void KillSingleSeg(Candy *M, double **img, int img_height, int img_width, double T);
-void KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double T);
+
+/*Birth Functions */ 
+double AddFreeSeg (Candy *M, double **img, double **lm, int **img_seg, int img_height, int img_width, double T,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2);
+double AddSingleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len, double ***Matrix, double prior_pen1, double prior_pen2);
+double AdddoubleSeg (Candy *M, double **img, double **lm, int **img_seg, double ****img_mpp_l, double ****img_seg_l,int img_height, int img_width, double T,double **patch, int patch_len , double ***Matrix, double prior_pen1, double prior_pen2, int test);
+
+/*Death Functions */ 
+double KillFreeSeg(Candy *M, double **img, int img_height, int img_width, double T);
+double KillSingleSeg(Candy *M, double **img, int img_height, int img_width, double T);
+double KillDoubleSeg(Candy *M, double **img, int img_height, int img_width, double T);
 
 //int FreeSeg_length_move(Candy *M, double **img, double ***mid_img, int img_height, int img_width, double T,double **patch, int patch_len);
 //int FreeSeg_theta_move(Candy *M, double **img, double ***mid_img, int img_height, int img_width, double T,double **patch, int patch_len);
 //int SingleSeg_freeEnd_move(Candy *M, double **img, double ***mid_img, int img_height, int img_width, double T, double **patch, int patch_len);
 
-int FreeSeg_length_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
-int FreeSeg_theta_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double FreeSeg_length_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double FreeSeg_theta_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
 
 //KDW
-int FreeSeg_width_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
-int FreeSeg_freeEnd_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
-int FreeSeg_center_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double FreeSeg_width_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T,double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double FreeSeg_freeEnd_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double FreeSeg_center_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
 
-int SingleSeg_freeEnd_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
-int SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double SingleSeg_freeEnd_move(Candy *M, double **img, int **seg_img, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
+double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, double ****img_mpp_l,double ****img_seg_l, int img_height, int img_width, double T, double **patch, int patch_len,double ***Matrix, double prior_pen1, double prior_pen2);
 
 
 double theta_from_two_ends(site enda, site endb);

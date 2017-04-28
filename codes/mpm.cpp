@@ -30,7 +30,7 @@ void blurring_term(unsigned char **yimg, double ***bt, double ***btkv, unsigned 
 {
 	int i, j, ii, jj, xx, yy, l, gaussian = DEF_GAUSSIAN;
 	double **dimg, sum, y_tilda_qt;
-	int num_vpar = 2*CLASSES*CLASSES+CLASSES, d = (blur_size-1)/2;
+	int d = (blur_size-1)/2;
 
 	dimg = (double **)get_img(cols, rows, sizeof(double));
 
@@ -138,7 +138,6 @@ void mpm(unsigned char **y, unsigned char **xt, double **btk[], double **pr[], d
 	double x, post[MAX_CLASSES], sum, coeff[MAX_CLASSES];
 	int i, j, ii, jj, k, l, mm, prior[MAX_CLASSES], pr_sum[MAX_CLASSES], d = (blur_size-1)/2;
 	double c_sum, numer_sum[MAX_CLASSES];
-	int num_vpar = 2*classes*classes+classes;
 	double  **bt[MAX_CLASSES], **btkv[MAX_CLASSES];
 
 #ifdef MPM_IMG_OUTPUT
@@ -378,7 +377,6 @@ void mpm_betaimg(unsigned char **y, unsigned char **xt, double **btk[], double *
 	double x, post[MAX_CLASSES], sum, coeff[MAX_CLASSES];
 	int i, j, ii, jj, k, l, mm, prior[MAX_CLASSES], prior8[MAX_CLASSES], pr_sum[MAX_CLASSES], d = (blur_size-1)/2;
 	double c_sum, numer_sum[MAX_CLASSES];
-	int num_vpar = 2*classes*classes+classes;
 	double  **bt[MAX_CLASSES], **btkv[MAX_CLASSES];
 
 #ifdef MPM_IMG_OUTPUT
