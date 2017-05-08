@@ -135,14 +135,15 @@ double FreeSeg_length_move(Candy *M, double **img, int **img_seg, double ****img
 
 		
 
+		M->Vo += (dterm - object->dataterm);
+		M->VRio += (g_Rio- g_Rio_before);
+		M->VReo += (g_Rc - g_Rc_before);
+
 		#if INCLUDE_OPENCV_TRANSITION
 			printf("Length Move Energy: %.2f\n", Echange- Echange_before);		
 			display_only_one_double(img, img_height, img_width, freeSeg, 1);
 		#endif
 
-		M->Vo += (dterm - object->dataterm);
-		M->VRio += (g_Rio- g_Rio_before);
-		M->VReo += (g_Rc - g_Rc_before);
 
 		return (Echange - Echange_before);
 	}
@@ -239,14 +240,15 @@ double FreeSeg_width_move(Candy *M, double **img, int **img_seg, double ****img_
 		LinkedListInsert( M->link_f,M->n_f, freeSeg);  	
 		UpdateItsNeighboors_born_freeSeg(freeSeg,M);
 
+		M->Vo += (dterm - object->dataterm);
+		M->VRio += (g_Rio- g_Rio);
+		M->VReo += (g_Rc - g_Rc);
+
+
 		#if INCLUDE_OPENCV_TRANSITION
 			printf("Free Segment Width Move Energy: %.2f\n", Echange-Echange_before);		
 			display_only_one_double(img, img_height, img_width, freeSeg, 1);
 		#endif
-
-		M->Vo += (dterm - object->dataterm);
-		M->VRio += (g_Rio- g_Rio);
-		M->VReo += (g_Rc - g_Rc);
 
 		return (Echange - Echange_before);
 	}
@@ -374,14 +376,14 @@ double FreeSeg_theta_move(Candy *M, double **img, int **img_seg, double ****img_
 		LinkedListInsert( M->link_f,M->n_f, freeSeg);  	
 		UpdateItsNeighboors_born_freeSeg(freeSeg,M);
 
+		M->Vo += (dterm - object->dataterm);
+		M->VRio += (g_Rio- g_Rio_before);
+		M->VReo += (g_Rc - g_Rc_before);
+
 		#if INCLUDE_OPENCV_TRANSITION
 			printf("Free Segment Theta Move Energy: %.2f\n", Echange-Echange_before);		
 			display_only_one_double(img, img_height, img_width, freeSeg, 1);
 		#endif
-
-		M->Vo += (dterm - object->dataterm);
-		M->VRio += (g_Rio- g_Rio_before);
-		M->VReo += (g_Rc - g_Rc_before);
 
 		return ( (double)(Echange - Echange_before) );
 	}
@@ -513,14 +515,14 @@ double FreeSeg_freeEnd_move(Candy *M, double **img, int **img_seg, double ****im
 		LinkedListInsert( M->link_f,M->n_f, freeSeg);  	
 		UpdateItsNeighboors_born_freeSeg(freeSeg,M);
 
+		M->Vo += (dterm - object->dataterm);
+		M->VRio += (g_Rio- g_Rio_before);
+		M->VReo += (g_Rc - g_Rc_before);
+
 		#if INCLUDE_OPENCV_TRANSITION
 			printf("Free Segment Theta Move Energy: %.2f\n", Echange-Echange_before);		
 			display_only_one_double(img, img_height, img_width, freeSeg, 1);
 		#endif
-
-		M->Vo += (dterm - object->dataterm);
-		M->VRio += (g_Rio- g_Rio_before);
-		M->VReo += (g_Rc - g_Rc_before);
 
 
 		return (Echange - Echange_before);
@@ -633,14 +635,15 @@ double FreeSeg_center_move(Candy *M, double **img, int **img_seg, double ****img
 		LinkedListInsert( M->link_f,M->n_f, freeSeg);  	
 		UpdateItsNeighboors_born_freeSeg(freeSeg,M);
 
+		
+		M->Vo += (dterm - object->dataterm);
+		M->VRio += (g_Rio- g_Rio_before);
+		M->VReo += (g_Rc - g_Rc_before);
+		
 		#if INCLUDE_OPENCV_TRANSITION
 			printf("Free Segment Free End Move Energy: %.2f\n", Echange-Echange_before);		
 			display_only_one_double(img, img_height, img_width, freeSeg, 1);
 		#endif
-
-		M->Vo += (dterm - object->dataterm);
-		M->VRio += (g_Rio- g_Rio_before);
-		M->VReo += (g_Rc - g_Rc_before);
 
 		return (Echange - Echange_before);
 	}

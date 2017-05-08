@@ -12,3 +12,18 @@
 
 #Text Files
 *.txt
+
+#bin files
+*.bin
+
+#log files
+*.log
+
+#cMake Files
+*.cmake
+CMakeFiles
+
+#Backup Folder
+codes1/*
+
+

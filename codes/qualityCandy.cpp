@@ -512,7 +512,7 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 				}
 		#endif
 
-		if(fabs(E1 - E2) > 0.0001 && 0)
+		if(fabs(E1 - E2) > 0.0001)
 		{
 			printf("Error in Energies");
 			printf("\n1:%.2f\n", E1);

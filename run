@@ -7,5 +7,5 @@ rm ChannelMPP
 make
 cp ChannelMPP ../
 cd ..
-./ChannelMPP cracked_inv 
+./ChannelMPP cracked1
 
