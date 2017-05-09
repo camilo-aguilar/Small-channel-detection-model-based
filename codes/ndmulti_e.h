@@ -152,5 +152,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			double *vari, double variance, NeckDent *mp,
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows);
-			
+
+//double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols);
+
 #endif

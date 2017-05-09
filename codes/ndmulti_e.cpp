@@ -4587,3 +4587,20 @@ void calculate_betaimg(double **beta_img[], double *beta, NeckDent *mp,
 		Gaussian_beta(beta_img, beta, cols, rows, &(mp[k]), mpp);
 	}
 }
+
+#if 0
+double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols)
+{
+	unsigned char xt255;
+	int i, j;
+	double misclassed = 0;
+
+	for (i = 0; i < rows; i++)
+		for (j = 0; j < cols; j++){
+			xt255 = (unsigned char)xt[i][j] * 255 / (classes - 1);
+			if(xt255!=gt[i][j]) misclassed += 1.0;
+		}
+	misclassed = misclassed*100/(cols*rows); // percentage of misclassified pixels
+	return misclassed;
+}
+#endif

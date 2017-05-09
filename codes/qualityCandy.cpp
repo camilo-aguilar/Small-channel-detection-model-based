@@ -662,7 +662,7 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 		}	
 
 	}
-	fprintf(energy_log_file,"%.5f\r\n %.5f\r\n %.5f\r\n %d\r\n %d\r\n %d\r\n",C->Vo, C->VRio, C->VReo, C->n_f,C->n_s,C->n_s);
+	fprintf(energy_log_file,"%.5f\r\n %d\r\n %d\r\n %d\r\n %.5f\r\n %.5f\r\n",C->Vo, C->n_f,C->n_s,C->n_d, C->VReo, C->VRio);
 	fclose(energy_log_file);
 
 	#if INCLUDE_OPENCV_END

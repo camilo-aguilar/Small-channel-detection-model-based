@@ -8,7 +8,7 @@
 #include "em.h"
  
 
-#define INCLUDE_OPENCV 1
+#define INCLUDE_OPENCV 0
 #define IMAGE_IVERTED  1 
 #define NUM_WINDOWS   100
 #define DERIVATIVE_LIKELY 0
