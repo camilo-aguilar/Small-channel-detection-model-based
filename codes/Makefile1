@@ -62,7 +62,7 @@ tiff.o: tiff.cpp tiff.h
 util.o: util.h util.cpp
 	$(CC) $(CFLAGS) -c util.cpp
 
-Parameters.o: Parameters.h 
+parameters.o: Parameters.h 
 	$(CC) $(CFLAGS) -c Parameters.cpp
 
 clean: 
