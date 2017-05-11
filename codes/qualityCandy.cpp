@@ -412,6 +412,7 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 
 	int mp_num = 0;
 	double Echange = 0;
+	double E1 = 0, E2 = 0;
 
 	FILE *energy_log_file;
 
@@ -492,13 +493,19 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 	printf("Start RJMCMC\n");
 	for (int i = 0;i<mpp.iter_num;i++)
 	{
-		double E1 = C->energy;
-		double E2 = -1* ((C->Vo*C->gamma_d) + (C->VReo*C->w_eo) + (C->VRio*C->w_io) + (C->n_s*C->w_s) + (C->n_f*C->w_f) + (C->n_d * C->w_d));
+		E1 = C->energy;
+		E2 = -1* ((C->Vo*C->gamma_d) + (C->VReo*C->w_eo) + (C->VRio*C->w_io) + (C->n_s*C->w_s) + (C->n_f*C->w_f) + (C->n_d * C->w_d));
 		#if INCLUDE_OPENCV
 				if(Echange)//i%(mpp.iter_num/NUM_WINDOWS)==0)
 				{						
 					
-					printf("\n1:%.2f\n", E1);
+					printf("\n Vo:%.2f\n", C->Vo*C->gamma_d);
+					printf("\n Veo:%.2f\n", C->VReo*C->w_eo);
+					printf("\n Vnf:%.2f\n", C->n_f*C->w_f);
+					printf("\n Vns:%.2f\n", C->n_s*C->w_s);
+					printf("\n Vnd:%.2f\n", C->n_d*C->w_d);
+
+					printf("1:%.2f\n", E1);
 					printf("2:%.2f\n", E2);
 					
 					//printf("2:%.2f\n", (-C->Vo*C->gamma_d) - ((double)C->n_f*C->w_f));
@@ -662,11 +669,19 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 		}	
 
 	}
-	fprintf(energy_log_file,"%.5f\r\n %d\r\n %d\r\n %d\r\n %.5f\r\n %.5f\r\n",C->Vo, C->n_f,C->n_s,C->n_d, C->VReo, C->VRio);
+	fprintf(energy_log_file,"%f\r\n %d\r\n %d\r\n %d\r\n %.5f\r\n %.5f\r\n",C->Vo, C->n_f,C->n_s,C->n_d, C->VReo, C->VRio);
 	fclose(energy_log_file);
 
 	#if INCLUDE_OPENCV_END
-	display_image_double(input_img, height, width, C);
+		display_image_double(input_img, height, width, C);
+		printf("\n Vo:%.2f\n", C->Vo*C->gamma_d);
+		printf("\n Veo:%.2f\n", C->VReo*C->w_eo);
+		printf("\n Vnf:%.2f\n", C->n_f*C->w_f);
+		printf("\n Vns:%.2f\n", C->n_s*C->w_s);
+		printf("\n Vnd:%.2f\n", C->n_d*C->w_d);
+
+		printf("1:%.2f\n", E1);
+		printf("2:%.2f\n", E2);
 	#endif
 
 

@@ -792,7 +792,7 @@ int main( int argc , char** argv)
 		sprintf(parameter_values, "gamma_%.2f_wf_%.2f_ws_%.2f_wd_%.2f_weo_%.2f_wio_%.2f_wid_%.2f_len_%.2f_error_th_%.2f_iter_%d_",mpp.gamma_d, mpp.w_f , mpp.w_s, mpp.w_d, mpp.w_eo, mpp.w_io,my_width, my_length, mpp.error_th,mpp.iter_num);
 
 
-		//save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values);
+		save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values);
 		char output_name_temp[30] = "output";
 		save_channel_image(channel_img, yimg,input_img.height, input_img.width, output_name_temp);
 
