@@ -42,7 +42,7 @@ int Bad_IO(lineObj *Seg, Candy *M, double *g_Rio)
 /* 
 1 - For each discovered line object
 2     if the distance between each object's center is less than half len max(L1,L2) 
-3     Check that their angles are at max more than Pi/8 difference.   
+3     Check that their angles are at least more than Pi/8 difference.   
 4     Assigns a potential difference  
  */
 int Bad_IO_from_Link(lineObj *Seg, LinkedList link, int n, double *g_Rio)
@@ -231,18 +231,18 @@ int Bad_IO_from_Link_connection_move(lineObj *Seg, LinkedList link, int n, lineO
 	{
 		p = p->next;
 		lineObj *l = p->index;
-	//	if(l == obj)
-	//	{
-	//		printf("find obj to connect its end\n");
-	//	}
+
 		flag = 0;
-		for (int j = 0;j < obj_num; j++){
-			if (l == obj[j]){
+		for (int j = 0;j < obj_num; j++)
+		{
+			if (l == obj[j])
+			{
 				flag = 1;
 				break;
 			}
 		}
-		if (!flag)	{
+		if (!flag)	
+		{
 			int x= l->x;
 			int y = l->y;
 			int len = l->len;
@@ -251,8 +251,8 @@ int Bad_IO_from_Link_connection_move(lineObj *Seg, LinkedList link, int n, lineO
 			site endb = l->endb;
 
 			int cret = 0;
-		if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) <= (double)MAX(c_len,len)/2.*IO_RANGE_MARGIN)
-			cret = 1;
+			if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) <= (double)MAX(c_len,len)/2.*IO_RANGE_MARGIN)
+				cret = 1;
 			
 			 if (l!= Seg && cret == 1)
 			{

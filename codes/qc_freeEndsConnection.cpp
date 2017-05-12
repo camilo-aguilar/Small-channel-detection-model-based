@@ -12,7 +12,21 @@ NClinks *NClinksInit()
 	return L;
 }
 
+/*
+AddNClinks (add Neighbor/Connection Links:
+Takes list NCLinks (either Neighborlist or Connection List), index , and adds another 
+element formed of obj1 and obj2
 
+	Inputs:
+	 	NClinks *l: List of Connections/Neighbors in the whole configuration
+	 	index	  : Number of elements in the list
+	 	obj1 	  : Object 1 to be part of connection/neighbor set
+	 	obj2 	  : Object 2 to be part of connection/neighbor set
+
+	Outputs:
+		Updated list *l with new element containing both ebjects
+
+*/
 void AddNClinks(NClinks *l, int index, lineObj *obj1, lineObj *obj2)
 {
 	NClinks *pre = l;
@@ -48,16 +62,15 @@ void KillNClinks(NClinks *l, lineObj *obj1, lineObj *obj2)
 
 /*
 NC_pairs:
-Takes obj1 and obj2 and outputs the ends of obj1 and obj2 that are within r =|NEIGHBOORHOOD| 
-of distance
+Takes obj1 and obj2 and outputs the ends of obj1 and obj2 that are connected
 
 	Inputs:
 	 	obj1: Object 1 to be compared
 	 	obj2: Object 2 to be compared
 
 	Outputs:
-		end1: Node in object 1 within r of node in object 2
-		end2: Node in object 2 within r of node in object 1
+		end1: Node in object 1 connected to object 2
+		end2: Node in object 2 connected to object 1
 
 */
 void NC_pairs(lineObj *obj1, lineObj *obj2,site *end1, site *end2)

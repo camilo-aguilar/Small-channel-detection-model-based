@@ -10,14 +10,14 @@
 
 #define INCLUDE_OPENCV 0
 #define IMAGE_IVERTED  1 
-#define NUM_WINDOWS   100
+#define NUM_WINDOWS   10
 #define DERIVATIVE_LIKELY 0
 
 #if INCLUDE_OPENCV
-	#define INCLUDE_OPENCV_FREE_SEG    1
-	#define INCLUDE_OPENCV_SINGLE_SEG 1
-	#define INCLUDE_OPENCV_DOUBLE_SEG  1
-  #define INCLUDE_OPENCV_TRANSITION  1
+	#define INCLUDE_OPENCV_FREE_SEG    0
+	#define INCLUDE_OPENCV_SINGLE_SEG 0
+	#define INCLUDE_OPENCV_DOUBLE_SEG  0
+  #define INCLUDE_OPENCV_TRANSITION  0
 #endif
 
 #define _PI					3.141592654
@@ -32,8 +32,8 @@
 #define THETA_MIN						       (_PI/2.0 - _PI/10)
 #define THETA_MAX		        			 (_PI/2.0 + _PI/10)
 
-#define TAU_MAX                     _PI/4.0
-#define DELTA_IO_MIN                0//_PI/8 (0 for no crossings at all)
+#define TAU_MAX                     _PI/3
+#define DELTA_IO_MIN                 0//_PI/8 (0 for no crossings at all)
 /****************************************************
  *				IMAGE BASED	PARAMETERS   			* 
  ****************************************************/
@@ -97,9 +97,9 @@
 #define FREE_TO_CONNECTED 		 	        0.9
 
 /* All these steps must add up to 1 */
-#define TRANSITION_FREE_SEGMENT  	      1
-#define TRANSITION_SINGLE_SEGMENT       0//0.3
-#define TRANSITION_DOUBLE_SEGMENT	      0//0.4
+#define TRANSITION_FREE_SEGMENT  	      0.3
+#define TRANSITION_SINGLE_SEGMENT       0.4//0.3
+#define TRANSITION_DOUBLE_SEGMENT	      0.3//0.4
 
 
 

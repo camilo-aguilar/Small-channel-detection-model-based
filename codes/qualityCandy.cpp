@@ -496,18 +496,20 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 		E1 = C->energy;
 		E2 = -1* ((C->Vo*C->gamma_d) + (C->VReo*C->w_eo) + (C->VRio*C->w_io) + (C->n_s*C->w_s) + (C->n_f*C->w_f) + (C->n_d * C->w_d));
 		#if INCLUDE_OPENCV
-				if(Echange)//i%(mpp.iter_num/NUM_WINDOWS)==0)
+				if(/*Echange)*/i%(mpp.iter_num/NUM_WINDOWS)==0)
 				{						
 					
 					printf("\n Vo:%.2f\n", C->Vo*C->gamma_d);
 					printf("\n Veo:%.2f\n", C->VReo*C->w_eo);
+					printf("\n Vio:%.2f\n", C->VRio);
 					printf("\n Vnf:%.2f\n", C->n_f*C->w_f);
 					printf("\n Vns:%.2f\n", C->n_s*C->w_s);
 					printf("\n Vnd:%.2f\n", C->n_d*C->w_d);
 
 					printf("1:%.2f\n", E1);
 					printf("2:%.2f\n", E2);
-					
+
+					printf("Loop # %d\n", i);
 					//printf("2:%.2f\n", (-C->Vo*C->gamma_d) - ((double)C->n_f*C->w_f));
 					display_image_double(input_img, height, width, C);
 					
@@ -519,11 +521,16 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 				}
 		#endif
 
-		if(fabs(E1 - E2) > 0.0001)
+		if(fabs(E1 - E2) > 0.0001 || abs(E1) >= INF/10 )
 		{
 			printf("Error in Energies");
 			printf("\n1:%.2f\n", E1);
 			printf("2:%.2f\n", E2);
+			printf("Loop # %d\n", i);
+
+			#if INCLUDE_OPENCV
+				while(cv::waitKey(0) != 27);
+			#endif
 			exit(1);
 		}
 		Echange = 0;
@@ -976,10 +983,30 @@ void updateNeighboorLink_death(Candy *M, lineObj* target,lineObj* seg,site end)
 		}
 }
 
+
+/*
+updateNeighboorLink_born:
+Receives configuration M, target segment, current segment, and one end of the current segment
+and updates NClist in M if they happen to be neighboors or connected.
+
+	Inputs:
+	 	M 		: Current configuration
+	 	target	: Target line to be compared
+	 	seg 	:  Current segment being compared
+	 	end 	:  One of the ends of the current segemnt 
+
+	Outputs:
+		Updated list *l in M with new element containing both ebjects
+		list is either Neighbor or Connection list.
+
+*/
+
 void updateNeighboorLink_born(Candy *M, lineObj* target,lineObj* seg,site end)
 {
+	//CGA: if enda of target is connected/neighbor to end
 	if (DIST(target->enda.x,target->enda.y,end.x,end.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
 		{
+			//CGA: If it is connected
 			if (target->enda.x == end.x && target->enda.y == end.y)
 			{
 				target->enda_C[target->enda_C_Num] = seg;
@@ -988,6 +1015,7 @@ void updateNeighboorLink_born(Candy *M, lineObj* target,lineObj* seg,site end)
 				M->connection_n++;
 				AddNClinks(M->connection_l,M->connection_n,target, seg);
 			}
+			//CGA: if it is a neighbor
 			else
 			{
 				target->enda_L[target->enda_L_Num] = seg;
@@ -997,6 +1025,7 @@ void updateNeighboorLink_born(Candy *M, lineObj* target,lineObj* seg,site end)
 				AddNClinks(M->neighbor_l,M->neighbor_n,target, seg);
 			}
 		}
+		//CGA: if endb of target is connected/neighbor to end
 		if (DIST(target->endb.x,target->endb.y,end.x,end.y) < NEIGHBOORHOOD*NEIGHBOORHOOD)
 		{
 			if (target->endb.x == end.x && target->endb.y == end.y)
