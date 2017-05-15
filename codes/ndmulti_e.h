@@ -58,19 +58,6 @@
 
 //#define DENT_NECK_S_E_F		0.8
 
-#define TEXT_NONE			-1
-#define TEXT_SINGLE_E		0
-#define TEXT_MULTIPLE_E		1
-#define TEXT_TOTAL_E		2
-#define TEXT_BOTH_E			3
-#define TEXT_E0_E1			4
-#define TEXT_SINGLE_E_DIST	5
-#define TEXT_SINGLE_TEST	6
-#define TEXT_NUM_SINGLE_E	7
-#define TEXT_NUMBER			8
-#define RUNNGIN_TEXT		TEXT_SINGLE_E_DIST//TEXT_NONE
-#define SAVE_TEXT			TEXT_NONE
-
 // for avg_Gaussian_neck and avg_Gaussian_dent
 #define WEIGHT_AMP	4
 #define WEIGHT_OFFSET 1

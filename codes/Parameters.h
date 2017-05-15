@@ -145,6 +145,29 @@
 #define CHANNEL_TYPES 			 1
 
 
+/****************************************************
+ ****************************************************
+ **************************************************** 
+ *****************    USER    *********************
+ *****************     GUI    ********************* 
+ ****************************************************
+ ****************************************************
+ ****************************************************/
+
+#define TEXT_NONE     -1
+#define TEXT_SINGLE_E   0
+#define TEXT_MULTIPLE_E   1
+#define TEXT_TOTAL_E    2
+#define TEXT_BOTH_E     3
+#define TEXT_E0_E1      4
+#define TEXT_SINGLE_E_DIST  5
+#define TEXT_SINGLE_TEST  6
+#define TEXT_NUM_SINGLE_E 7
+#define TEXT_NUMBER     8
+#define SAVE_TEXT     TEXT_NONE
+#define DISPAY_TEXT   TEXT_NONE
+
+
 /*Input Parameters for Candy Model*/
 typedef struct _input_params 
 { 
