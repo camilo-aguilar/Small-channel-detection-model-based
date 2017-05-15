@@ -298,4 +298,6 @@ int count_all_ends(Candy *M, site *end);
 int count_all_ends(Candy *M, site *end, lineObj **obj);
 int SelectNearestEnd(site a,lineObj *belong,Candy *M,int searchR, site *candid);
 
+void _retrieve_kernel(double r, double rr, double rrr, Candy *C);
+
 #endif /* _QUALITYCANDY_H_ */

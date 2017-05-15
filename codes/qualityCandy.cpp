@@ -446,6 +446,8 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 	double prior_pen1 = mpp.error_th;//KDW
 	double prior_pen2 = PEN_2;//0.5;
 
+	double r,rr, rrr;
+
 
 	double **Matrix[MAX_K];
 	
@@ -521,12 +523,13 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 				}
 		#endif
 
-		if(fabs(E1 - E2) > 0.0001 || abs(E1) >= INF/10 )
+		if(fabs(E1 - E2) > 0.0001 || fabs((double)E1) >= INF/10 )
 		{
 			printf("Error in Energies");
 			printf("\n1:%.2f\n", E1);
 			printf("2:%.2f\n", E2);
 			printf("Loop # %d\n", i);
+			_retrieve_kernel( r, rr,  rrr, C);
 
 			#if INCLUDE_OPENCV
 				while(cv::waitKey(0) != 27);
@@ -539,7 +542,7 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 			printf(" %2.2f Percent of Iterations Completed \n", (float)i/(float)mpp.iter_num * 100.00);
 		}
 
-		double r = random2();
+		r = random2();
 		
 		
 		if((C->n_f + C->n_s + C->n_d)==0)
@@ -549,8 +552,8 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 
 		if (r < C->p_b_d)   //birth and death step
 		{
-			double rr = random2();
-			double rrr = random2();
+			rr = random2();
+			rrr = random2();
 
 				
 			if (rr < C->p_f)  // free segment
@@ -1815,5 +1818,114 @@ int count_all_ends(Candy *M, site *end)
 	count_all_ends_in_link(M->link_d,M->n_d,end,&num);
 
 	return num;
+
+}
+
+
+void _retrieve_kernel(double r, double rr, double rrr, Candy *C)
+{
+	if (r < C->p_b_d)   //birth and death step
+	{				
+		if (rr < C->p_f)  // free segment
+		{
+			if (rrr < C->p_f_b)
+			{
+				printf("Add Free Segment\n");
+				return;
+			}
+			else
+			{
+				printf("Kill Free Segment\n");
+				return;
+				
+			}
+		}
+		else if (rr < C->p_s+C->p_f)  //single segment
+		{
+			if (rrr < C->p_s_b)
+			{
+				printf("Add Single Segment\n");
+				return;			
+			}
+			else
+			{
+				printf("Kill Single Segment\n");
+				return;
+			}
+		}
+		else
+		{
+			if (rrr < C->p_d_b)
+			{
+				printf("Add Dobule Segment\n");
+				return;
+			}
+			else
+			{
+				printf("Kill Double Segment\n");
+				return;	
+			}
+		}
+		/* End Birth/Death Kernel */
+		}
+		else if (r <C->p_b_d +C->p_t)
+		{
+			/* Transition Kernel */
+			if (rr < C->p_t_f)
+			{
+				if (rrr < 0.2)
+				{
+					printf("Free Seg Lenght Move\n");
+					return;	
+				}			
+				else if (rrr< 0.4)
+				{
+					printf("Free Seg Theta Move\n");
+					return;				
+				}
+				else  if (rrr< 0.6) //KDW 
+				{
+					printf("Free Width Move\n");
+					return;								}
+				else  if (rrr< 0.8)  //KDW
+				{
+					printf("Free Seg  Free End Move\n");
+					return;
+				}
+				else //KDW
+				{
+					printf("Free Seg Center Move\n");
+					return;				
+				}
+
+				/* End of Transition Kernel */
+
+			}
+			else if (rr < C->p_t_s+C->p_t_f)
+			{
+				printf("Single Seg Free End Move\n");
+				return;		
+
+			}
+			else  // no disconnect & move
+			{
+					printf("Double.Single Seg Move\n");
+					return;		
+			}
+		}
+		else   //connetion and separation step
+		{
+
+			double rr = random2();
+			if (rr < C->p_c_FtoC)
+			{
+				//Conncet_freeEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,1.0/T);
+			}
+			else
+			{
+				//Seperate_connectedEnds(C,input_img,output_seg, img_mpp_l,img_seg_l,patch,patch_len,height,width,Matrix, prior_pen1,prior_pen2,1.0/T);
+			}
+
+		}
 
 }
