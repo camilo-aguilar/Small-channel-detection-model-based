@@ -845,14 +845,14 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 		pre = pre->next;
 
 	//CGA: *p is the segment, ob1 and ob2 are its connections 
-	NClinks *p = pre->next;
-	lineObj *obj1 = p->object1;
-	lineObj *obj2 = p->object2;
+	NClinks *connected_segment_to_be_moved = pre->next;
+	lineObj *first_connected_end = connected_segment_to_be_moved->object1;
+	lineObj *second_connected_end = connected_segment_to_be_moved->object2;
 
 	site end1,end2;
 
 	//CGA find which end of each object is connected/close to the other object
-	NC_pairs(obj1,obj2,&end1,&end2);  
+	NC_pairs(first_connected_end,second_connected_end,&end1,&end2);  
 
 	site new_endc;
 	int x_offset;
@@ -875,17 +875,17 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 		return 0;
 
 	//CGA: Create new object and new end
-	lineObj **obj;
+	lineObj **old_array_of_neighbors;
 	int C_Num, *endc; // endc array: connection point 0:enda, 1:endb
 	
 	//If end1 was part of enda object1
-	if ((obj1->enda.x == end1.x)&&(obj1->enda.y==end1.y))
+	if ((first_connected_end->enda.x == end1.x)&&(first_connected_end->enda.y==end1.y))
 	{
 		//Add +1 to Connection Number
-		C_Num = obj1->enda_C_Num+1;
+		C_Num = first_connected_end->enda_C_Num+1;
 		
 		//CGA: Create New Array of neighbors for that end
-		obj = (lineObj **)malloc(C_Num*sizeof(lineObj *)); // obj1 and its connections(C_Num)
+		old_array_of_neighbors = (lineObj **)malloc(C_Num*sizeof(lineObj *)); // first_connected_end and its connections(C_Num)
 		
 		//CGA: Array to keep track if its enda or endb
 		endc = (int *)malloc(C_Num*sizeof(int));
@@ -893,11 +893,11 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 		for(int i=0;i<C_Num-1;i++)
 		{ 
 			//CGA: Copy List of Neighbors attached to enda_C (connected to enda)
-			obj[i] = obj1->enda_C[i];
+			old_array_of_neighbors[i] = first_connected_end->enda_C[i];
 			
 			//CGA: See if object1 is connected in enda or endb of each neighbor obj[i]
-			NC_pairs(obj1,obj[i],&end1,&end2);			
-			if ((obj[i]->enda.x == end2.x)&&(obj[i]->enda.y==end2.y))
+			NC_pairs(first_connected_end,old_array_of_neighbors[i],&end1,&end2);			
+			if ((old_array_of_neighbors[i]->enda.x == end2.x)&&(old_array_of_neighbors[i]->enda.y==end2.y))
 				endc[i] = 0; // enda
 			else
 				endc[i] = 1; // endb
@@ -908,14 +908,14 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 	//If end1 was part of endb of object1
 	else
 	{
-		C_Num = obj1->endb_C_Num+1;
-		obj = (lineObj **)malloc(C_Num*sizeof(lineObj *)); // obj1 and its connections(C_Num)
+		C_Num = first_connected_end->endb_C_Num+1;
+		old_array_of_neighbors = (lineObj **)malloc(C_Num*sizeof(lineObj *)); // first_connected_end and its connections(C_Num)
 		endc = (int *)malloc(C_Num*sizeof(int));
 		for(int i=0;i<C_Num-1;i++)
 		{ 
-			obj[i] = obj1->endb_C[i];
-			NC_pairs(obj1,obj[i],&end1,&end2);
-			if ((obj[i]->enda.x == end2.x)&&(obj[i]->enda.y==end2.y))
+			old_array_of_neighbors[i] = first_connected_end->endb_C[i];
+			NC_pairs(first_connected_end,old_array_of_neighbors[i],&end1,&end2);
+			if ((old_array_of_neighbors[i]->enda.x == end2.x)&&(old_array_of_neighbors[i]->enda.y==end2.y))
 				endc[i] = 0; // enda
 			else
 				endc[i] = 1; // endb
@@ -924,82 +924,100 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 	}
 
 
-	obj[C_Num-1] = obj1;
+	old_array_of_neighbors[C_Num-1] = first_connected_end;
 
 	//CGA: Create Array of New Objects
-	lineObj **new_obj = (lineObj **)malloc(C_Num*sizeof(lineObj*));
+	lineObj **new_array_of_neighbors = (lineObj **)malloc(C_Num*sizeof(lineObj*));
 	
 	for(int i=0;i<C_Num;i++) 
-		new_obj[i] = (lineObj *)malloc(sizeof(lineObj));
+		new_array_of_neighbors[i] = (lineObj *)malloc(sizeof(lineObj));
 	
 	for(int i=0;i<C_Num;i++)
 	{ 
 		error = 1;
-		if (endc[i]==0) // enda ->point to the opposite cause its "deleting" the segment
-			new_obj[i]->enda = obj[i]->endb;
-		else			// endb
-			new_obj[i]->enda = obj[i]->enda;
+		if (endc[i]==0) // if they were connected trought enda, then the new segment connects to endb cause connection in enda is moving
+		{
+			new_array_of_neighbors[i]->enda = old_array_of_neighbors[i]->endb;
+			new_array_of_neighbors[i]->enda_L_Num = old_array_of_neighbors[i]->endb_L_Num;
+			new_array_of_neighbors[i]->enda_C_Num = old_array_of_neighbors[i]->endb_C_Num;
 
-		new_obj[i]->endb  = new_endc;
+		}
+		else			// endb
+		{
+			new_array_of_neighbors[i]->enda = old_array_of_neighbors[i]->enda;
+			new_array_of_neighbors[i]->enda_L_Num = old_array_of_neighbors[i]->enda_L_Num;
+			new_array_of_neighbors[i]->enda_C_Num = old_array_of_neighbors[i]->enda_C_Num;
+		}
+
+		new_array_of_neighbors[i]->endb  = new_endc;
 
 		//CGA Make sure it is withing lenghts
-		new_obj[i]->len = (int)sqrt(double(DistSquare(new_obj[i]->enda,new_obj[i]->endb)));
-		if (new_obj[i]->len<L_MIN || new_obj[i]->len>L_MAX)
+		new_array_of_neighbors[i]->len = (int)sqrt(double(DistSquare(new_array_of_neighbors[i]->enda,new_array_of_neighbors[i]->endb)));
+		if (new_array_of_neighbors[i]->len<L_MIN || new_array_of_neighbors[i]->len>L_MAX)
 			break;
 
 		//CGA find new coordinates for new object
-		new_obj[i]->x = (int)floor(0.5*(double(new_obj[i]->enda.x+new_obj[i]->endb.x))+0.5);
-		new_obj[i]->y = (int)floor(0.5*(double(new_obj[i]->enda.y+new_obj[i]->endb.y))+0.5);
-		new_obj[i]->width = obj[i]->width;
-		new_obj[i]->type = obj[i]->type;
+		new_array_of_neighbors[i]->x = (int)floor(0.5*(double(new_array_of_neighbors[i]->enda.x+new_array_of_neighbors[i]->endb.x))+0.5);
+		new_array_of_neighbors[i]->y = (int)floor(0.5*(double(new_array_of_neighbors[i]->enda.y+new_array_of_neighbors[i]->endb.y))+0.5);
+		new_array_of_neighbors[i]->width = old_array_of_neighbors[i]->width;
+		new_array_of_neighbors[i]->type = old_array_of_neighbors[i]->type;
 
 		//CGA find new theta
-		if(new_obj[i]->enda.y < new_obj[i]->endb.y)
+		if(new_array_of_neighbors[i]->enda.y < new_array_of_neighbors[i]->endb.y)
 		{
-			if (new_obj[i]->enda.x-new_obj[i]->endb.x != 0)
-			    theta = atan(double((new_obj[i]->endb.y-new_obj[i]->enda.y)/double(new_obj[i]->enda.x-new_obj[i]->endb.x)));
+			if (new_array_of_neighbors[i]->enda.x-new_array_of_neighbors[i]->endb.x != 0)
+			    theta = atan(double((new_array_of_neighbors[i]->endb.y-new_array_of_neighbors[i]->enda.y)/double(new_array_of_neighbors[i]->enda.x-new_array_of_neighbors[i]->endb.x)));
 			else
 				theta = _PI/2;
 			if (theta < 0)
 				theta += _PI;
-			new_obj[i]->theta = theta;
+			new_array_of_neighbors[i]->theta = theta;
 		}
 		else
 		{
-			if (new_obj[i]->enda.x-new_obj[i]->endb.x != 0)
-			    theta = atan(double((new_obj[i]->enda.y-new_obj[i]->endb.y)/double(new_obj[i]->endb.x-new_obj[i]->enda.x)));
+			if (new_array_of_neighbors[i]->enda.x-new_array_of_neighbors[i]->endb.x != 0)
+			    theta = atan(double((new_array_of_neighbors[i]->enda.y-new_array_of_neighbors[i]->endb.y)/double(new_array_of_neighbors[i]->endb.x-new_array_of_neighbors[i]->enda.x)));
 			else
 				theta = _PI/2;
 			if (theta < 0)
 				theta += _PI;
-			new_obj[i]->theta = theta;
+			new_array_of_neighbors[i]->theta = theta;
 		}
 
-		new_obj[i]->endb_L_Num = 0;
-		new_obj[i]->enda_L_Num = 0;
-		new_obj[i]->endb_C_Num = 0;
-		new_obj[i]->enda_C_Num = 0;
+		new_array_of_neighbors[i]->endb_L_Num = 0;	
+		new_array_of_neighbors[i]->endb_C_Num = 1;
+		
 
-		n_io += Bad_IO_connection_move(new_obj[i], M, obj,C_Num,&g_Rio);
+		n_io += Bad_IO_connection_move(new_array_of_neighbors[i], M, old_array_of_neighbors,C_Num,&g_Rio);
+		if(g_Rio == INF)
+		{
+			error =1;
+			break;
+		}
 		total_gRio += g_Rio;
 
-		n_eo += Bad_EO_connection_move(NEIGHBOORHOOD,searchRatio,new_obj[i], M, obj,C_Num, &g_Rc);
+		n_eo += Bad_EO_connection_move(NEIGHBOORHOOD,searchRatio,new_array_of_neighbors[i], M, old_array_of_neighbors,C_Num, &g_Rc);
 		total_gRc += g_Rc;
 		
-		n_io_before += Bad_IO(obj[i], M,&g_Rio_before);
+		n_io_before += Bad_IO(old_array_of_neighbors[i], M,&g_Rio_before);
 		total_gRio_before += g_Rio_before;
+		if(g_Rio_before == INF)
+		{
+			error =1;
+			break;
+		}
 
-		n_eo_before += Bad_EO_death(NEIGHBOORHOOD,searchRatio,obj[i],M,&g_Rc_before);
+		n_eo_before += Bad_EO_death(NEIGHBOORHOOD,searchRatio,old_array_of_neighbors[i],M,&g_Rc_before);
 		total_gRc_before += g_Rc_before;
 
-		if (new_obj[i]->endb_C_Num != 0)
+		if (new_array_of_neighbors[i]->endb_C_Num != 0)
 			break;
 		
-		dtmp = dataterm_rec(img_seg, new_obj[i],patch,patch_len,new_obj[i]->width,Matrix, prior_pen1, prior_pen2, img_height,img_width);
-		new_obj[i]->dataterm = dtmp;
+		dtmp = dataterm_rec(img_seg, new_array_of_neighbors[i],patch,patch_len,new_array_of_neighbors[i]->width,Matrix, prior_pen1, prior_pen2, img_height,img_width);
+		new_array_of_neighbors[i]->dataterm = dtmp;
 		
 		dterm += dtmp;
-		dterm_before += obj[i]->dataterm;
+		dterm_before += old_array_of_neighbors[i]->dataterm;
 		error = 0;
 	}
 	if(fabs(total_gRc_before) >= INF || fabs(total_gRc) >= INF || fabs(total_gRio) >= INF || fabs(total_gRio_before) >= INF)
@@ -1007,8 +1025,8 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 
 	if (!error)
 	{
-		n_io += Bad_IO_objects(new_obj, C_Num, &g_Rio);
-		n_eo += Bad_EO_objects(NEIGHBOORHOOD,searchRatio,new_obj, C_Num, &g_Rc);
+		n_io += Bad_IO_objects(new_array_of_neighbors, C_Num, &g_Rio);
+		n_eo += Bad_EO_objects(NEIGHBOORHOOD,searchRatio,new_array_of_neighbors, C_Num, &g_Rc);
 		
 		Echange = -gamma_d*dterm -w_io*g_Rio -w_eo*g_Rc;
 		exp_Echange = beta*exp(Echange);
@@ -1018,7 +1036,7 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 
 		if(fabs(Echange_before) >= INF/10 || fabs(Echange)>= INF/10)
 		{
-			free(obj);
+			free(old_array_of_neighbors);
 			free(endc);
 			return 0;
 		}
@@ -1030,7 +1048,7 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 		if (r < MIN(1,R) && (Echange-Echange_before))
 		{
 			for(int i=0;i<C_Num;i++) 
-				killlineSeg(obj[i],M);
+				killlineSeg(old_array_of_neighbors[i],M);
 			
 			M->Vo += (dterm - dterm_before);
 			M->VRio += (g_Rio- g_Rio_before);
@@ -1040,13 +1058,13 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 			{
 				
 
-				if(i==0) new_obj[i]->type--; // first item has no connection yet in that connection point.
-				new_obj[i]->endb_L_Num = 0;
-				new_obj[i]->enda_L_Num = 0;
-				new_obj[i]->endb_C_Num = 0;
-				new_obj[i]->enda_C_Num = 0;
-				Bad_EO(NEIGHBOORHOOD,searchRatio,new_obj[i],M,&g_Rc);
-				AddlineSeg(new_obj[i],M);
+				if(i==0) new_array_of_neighbors[i]->type--; // first item has no connection yet in that connection point.
+				new_array_of_neighbors[i]->endb_L_Num = 0;
+				new_array_of_neighbors[i]->enda_L_Num = 0;
+				new_array_of_neighbors[i]->endb_C_Num = 0;
+				new_array_of_neighbors[i]->enda_C_Num = 0;
+				Bad_EO(NEIGHBOORHOOD,searchRatio,new_array_of_neighbors[i],M,&g_Rc);
+				AddlineSeg(new_array_of_neighbors[i],M);
 			}
 
 			//if(Echange - Echange_before < 100 && (Echange - Echange_before) > 0)
@@ -1066,7 +1084,7 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 				printf("Rio: %.2f\n", g_Rio - g_Rio_before);
 				
 				printf("Single/Double Connection Move Energy: %.2f\n", Echange-Echange_before);
-				display_only_one_double(img, img_height, img_width, new_obj[0], 1);
+				display_only_one_double(img, img_height, img_width, new_array_of_neighbors[0], 1);
 			#endif
 
 
@@ -1074,18 +1092,18 @@ double SingleDoubleSeg_Connection_move(Candy *M, double **img, int **img_seg, do
 		else
 		{
 			for(int i=0;i<C_Num;i++) 
-				free(new_obj[i]);
+				free(new_array_of_neighbors[i]);
 			return_energy = 0;
 		}
 	}
 	else
 	{
 		for(int i=0;i<C_Num;i++) 
-			free(new_obj[i]);
+			free(new_array_of_neighbors[i]);
 		return_energy = 0;
 	}
 	
-	free(obj);
+	free(old_array_of_neighbors);
 	free(endc);
 	return return_energy;
 }

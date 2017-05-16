@@ -250,11 +250,11 @@ int Bad_IO_from_Link_connection_move(lineObj *Seg, LinkedList link, int n, lineO
 			site enda = l->enda;
 			site endb = l->endb;
 
-			int cret = 0;
+			int distance_for_io = 0;
 			if (sqrt(double((c_x-x)*(c_x-x)+(c_y-y)*(c_y-y))) <= (double)MAX(c_len,len)/2.*IO_RANGE_MARGIN)
-				cret = 1;
+				distance_for_io = 1;
 			
-			 if (l!= Seg && cret == 1)
+			 if (l!= Seg && distance_for_io == 1)
 			{
 				if(l->enda.x == Seg->enda.x && l->enda.y == Seg->enda.y && l->endb.x == Seg->endb.x && l->endb.y == Seg->endb.y)
 					n_io =4;

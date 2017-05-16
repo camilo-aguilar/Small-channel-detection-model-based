@@ -187,7 +187,7 @@ void display_image_double(double **y, int rows, int cols, Candy *C)
 
 	LoadImageFromMemoryDouble(img, y);
 
-	DrawAllLines(C, img, TEXT_SINGLE_E, 1);
+	DrawAllLines(C, img, DISPAY_TEXT, 1);
 
 
 	cvNamedWindow("ChannelMpp");
