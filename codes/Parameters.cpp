@@ -8,6 +8,7 @@
 */
 
 #include "Parameters.h"
+
  
 MPP_Parameters parse_input_parameters(int argc,char** argv)
 {
@@ -80,6 +81,8 @@ MPP_Parameters parse_input_parameters(int argc,char** argv)
 	inp.widthmax		= W_MAX;	
 	inp.lengthmin		= L_MIN;	
 	inp.lengthmax		= L_MAX;	
+	inp.thetamin 		=THETA_MIN;
+	inp.thetamax 		=THETA_MAX;
 	inp.de_coeff 		= DECREASE_COEFFICIENT;
 
 	inp.optimization_type = PARAM_OPTIMIZATION_TYPE;	
@@ -102,6 +105,10 @@ MPP_Parameters parse_input_parameters(int argc,char** argv)
 	inp.gaussian_tau = GAUSSIAN_TAU;
 	inp.betampp = BETA_MPP;
 
+	
+	
+	inp = _parse_hard_parameters(inp);
+	
 	if(argc>2)
 	{
 	
@@ -151,6 +158,11 @@ MPP_Parameters parse_input_parameters(int argc,char** argv)
 			{
 				inp.error_th = atof(argv[++cntr]);
 			}
+			else if(strcmp(argv[cntr], "-h")==0)
+			{
+				print_help();
+				exit(0);
+			}
 			else
 			{
 				fprintf(stderr, "\n\n\nERROR: %s is not a recognized argument\n\n\n",argv[cntr]);
@@ -163,6 +175,38 @@ MPP_Parameters parse_input_parameters(int argc,char** argv)
 	}
 	
   return inp;
+}
+
+MPP_Parameters _parse_hard_parameters(MPP_Parameters input_p)
+{
+	FILE *f = fopen("hard_parameters.txt", "r");
+	if(f == NULL)
+	{
+		printf("No hard parameters file, using default hard_parameters \n");
+		return input_p;
+	}
+
+	char tmp_str[30];
+	MPP_Parameters output_p = input_p;	
+	int number_of_parameters = 0;
+	int i = 0;
+
+	fscanf(f, "%d", &number_of_parameters);
+ 	for(i=0; i< number_of_parameters; i++)
+ 	{
+ 		fscanf(f, "%s : %d",tmp_str , &output_p.optimization_type);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmin);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmax);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.widthmin);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.widthmax);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.thetamin);
+ 		fscanf(f, "%s : %lf",tmp_str , &output_p.thetamax);
+
+ 		
+ 	}	
+
+ 	return output_p;
+	
 }
 
 void print_help(void)
@@ -189,6 +233,9 @@ void print_help(void)
 
 }
 
+
+
+
 void _print_current_parameters(MPP_Parameters mpp)
 {
 
@@ -204,4 +251,13 @@ void _print_current_parameters(MPP_Parameters mpp)
 	printf("Initial Temperature: 	 		%f\n",mpp.T0);
 	printf("Decrease Coefficient: 	 		%f\n",mpp.de_coeff);
 	printf("Error_Threshold:				%f\n",mpp.error_th);
+
+	printf("L_Min: 							%f\n", mpp.lengthmin);
+	printf("L_Max: 							%f\n", mpp.lengthmax);
+	printf("W_Min: 							%f\n", mpp.widthmin);
+	printf("W_Max: 							%f\n", mpp.widthmax);
+	printf("Theta_Min: 						%f\n", mpp.thetamin);
+	printf("Theta_Max: 						%f\n", mpp.thetamax);
 }
+
+

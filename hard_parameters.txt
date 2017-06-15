@@ -1,0 +1,8 @@
+6
+OPT_ME : 2
+L_MIN : 10
+L_MAX : 40
+W_MIN : 2
+W_MAX : 5
+THETA_MIN : 1.40
+THETA_MAX : 1.60

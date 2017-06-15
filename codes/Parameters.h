@@ -8,54 +8,56 @@
 #include "em.h"
  
 
-#define INCLUDE_OPENCV 0
-#define IMAGE_IVERTED  1 
-#define NUM_WINDOWS   10
+#define INCLUDE_OPENCV 1
+#define IMAGE_INVERTED  1 
+#define TARGET_AREAS_ARE_WHITE 0
+#define NUM_WINDOWS   50
 #define DERIVATIVE_LIKELY 0
 
 #if INCLUDE_OPENCV
-	#define INCLUDE_OPENCV_FREE_SEG    0
-	#define INCLUDE_OPENCV_SINGLE_SEG 0
-	#define INCLUDE_OPENCV_DOUBLE_SEG  0
+  #define DELAY_FOR_DISPLAY 10 //set 0 for press key to continue
+  #define INCLUDE_OPENCV_FREE_SEG    1
+  #define INCLUDE_OPENCV_SINGLE_SEG 1
+  #define INCLUDE_OPENCV_DOUBLE_SEG  0
   #define INCLUDE_OPENCV_TRANSITION  0
 #endif
 
-#define _PI					3.141592654
-#define PRE_SEG_EM_MPM		
+#define _PI         3.141592654
+#define PRE_SEG_EM_MPM    
 /****************************************************
- *			GEOMETRIC  PARAMETERS 					* 
+ *      GEOMETRIC  PARAMETERS           * 
  ****************************************************/
-#define L_MAX							          30 
-#define L_MIN							          5
-#define W_MIN							          3 
-#define W_MAX							          5 
-#define THETA_MIN						       (_PI/2.0 - _PI/10)
-#define THETA_MAX		        			 (_PI/2.0 + _PI/10)
+#define L_MAX                       30 
+#define L_MIN                       5
+#define W_MIN                       3 
+#define W_MAX                       5 
+#define THETA_MIN                  (_PI/2.0 - _PI/10)
+#define THETA_MAX                  (_PI/2.0 + _PI/10)
 
 #define TAU_MAX                     _PI/3
-#define DELTA_IO_MIN                 0//_PI/8 (0 for no crossings at all)
+#define DELTA_IO_MIN                _PI/8// 0//_PI/8 (0 for no crossings at all)
 /****************************************************
- *				IMAGE BASED	PARAMETERS   			* 
+ *        IMAGE BASED PARAMETERS        * 
  ****************************************************/
-//#define ERROR_TH  	 	5
-#define ERROR_TH  	 					       7
-#define DERIVATIVE_THRESHOLD			   500
+//#define ERROR_TH      5
+#define ERROR_TH                     7
+#define DERIVATIVE_THRESHOLD         500
 
 
 /****************************************************
- *	      CANDY MPP REGULARIZATION Parameters		* 
+ *        CANDY MPP REGULARIZATION Parameters   * 
  ****************************************************/
-#define GAMMA_D 		                  50.0
+#define GAMMA_D                       50.0
   
-#define W_F 			                    10
-#define W_S 			                    -10
-#define W_D 			                    -20
+#define W_F                           10
+#define W_S                           -10
+#define W_D                           -20
 
-#define W_EO 			                    10.0
-#define W_IO 			                    1
+#define W_EO                          10.0
+#define W_IO                          1
 
 /* Symmetry Coefficient For Data Energy */
-#define SYM_TH			                  0.5
+#define SYM_TH                        0.5
 
 /* Delta Dilatation/Rotation/Translation Kernels */
 #define DELTA_LEN                      2 
@@ -69,45 +71,45 @@
 #define NEIGHBOORHOOD                   2//5
 
 /****************************************************
- *				QUALITY CANDY RJMCMC PARAMETERS		* 
+ *        QUALITY CANDY RJMCMC PARAMETERS   * 
  ****************************************************/
-#define ITERATIONS 				 	 	          5000000
-#define INITIAL_T0 				 	  	        0.8
+#define ITERATIONS                      5000000
+#define INITIAL_T0                      0.8
 
-#define DECREASE_COEFFICIENT 	 	        0.999999
-#define BETA_MPP                 	      14    
+#define DECREASE_COEFFICIENT            0.999999
+#define BETA_MPP                        14    
 
 /* DEATH = 1 - BIRTH */
-#define P_BIRTH_F 				 	  	        0.5
-#define P_BIRTH_S					 	            0.5
-#define P_BIRTH_D					 	            0.5
+#define P_BIRTH_F                       0.5
+#define P_BIRTH_S                       0.5
+#define P_BIRTH_D                       0.5
 
 /* All these steps must add up to 1 */
-#define P_BIRTH_DEATH_STEP       	  	  0.8
-#define P_TRANSLATION_STEP		  	      0.2//0.2
-#define P_CONNECTION_STEP		 	          0//0.4
+#define P_BIRTH_DEATH_STEP              0.8
+#define P_TRANSLATION_STEP              0.2//0.2
+#define P_CONNECTION_STEP               0//0.4
 
 /* All these steps must add up to 1 */
-#define P_PICK_F 	         		          0.6
-#define P_PICK_S            		        0.2
-#define P_PICK_D            		        0.2
+#define P_PICK_F                        0.6
+#define P_PICK_S                        0.2
+#define P_PICK_D                        0.2
  
 /* All these steps must add up to 1 */
-#define CONNETECTED_TO_FREE  	 	        0.1
-#define FREE_TO_CONNECTED 		 	        0.9
+#define CONNETECTED_TO_FREE             0.1
+#define FREE_TO_CONNECTED               0.9
 
 /* All these steps must add up to 1 */
-#define TRANSITION_FREE_SEGMENT  	      0.3
+#define TRANSITION_FREE_SEGMENT         0.3
 #define TRANSITION_SINGLE_SEGMENT       0.4//0.3
-#define TRANSITION_DOUBLE_SEGMENT	      0.3//0.4
+#define TRANSITION_DOUBLE_SEGMENT       0.3//0.4
 
 
 
 /****************************************************
- *				PARAMETERS FOR EM/MPM				* 
+ *        PARAMETERS FOR EM/MPM       * 
  ****************************************************/
-#define BETTA_FOR_MPP 		    	        27.0
-#define GAUSSIAN_TAU    		            17.0 
+#define BETTA_FOR_MPP                   27.0
+#define GAUSSIAN_TAU                    17.0 
 
 
 
@@ -115,34 +117,34 @@
 /****************************************************
  ****************************************************
  **************************************************** 
- *****************	NECK/DENT	*********************
- *****************	   MPP		********************* 
+ *****************  NECK/DENT *********************
+ *****************     MPP    ********************* 
  ****************************************************
  ****************************************************
  ****************************************************/
 
 
 /****************************************************
- *	      Neck/Dent MPP REGULARIZATION Parameters	* 
+ *        Neck/Dent MPP REGULARIZATION Parameters * 
  ****************************************************/
 
 
 
 /****************************************************
- *				NECK/DENT RJMCMC PARAMETERS			* 
+ *        NECK/DENT RJMCMC PARAMETERS     * 
  ****************************************************/
 /* Multiple Birth and Death */
 #define P_BIRTH                  0.5
 #define P_DEATH                  0.5
 #define P_DILATATION             0.1
-#define P_TRANSLATION     		 0.1
-#define P_ROTATION 				 0.8
-#define P_SWITCHING 			 0
+#define P_TRANSLATION          0.1
+#define P_ROTATION         0.8
+#define P_SWITCHING        0
 
-#define LAMBDA_RJMCMC 			 30000
-#define LAMBDA_L 				 0
-#define LAMBDA_INT  			 0.005
-#define CHANNEL_TYPES 			 1
+#define LAMBDA_RJMCMC        30000
+#define LAMBDA_L         0
+#define LAMBDA_INT         0.005
+#define CHANNEL_TYPES        1
 
 
 /****************************************************
@@ -308,5 +310,6 @@ typedef struct mpp_parameters
 MPP_Parameters parse_input_parameters(int argc,char** argv);
 void print_help(void);
 void _print_current_parameters(MPP_Parameters mpp);
+MPP_Parameters _parse_hard_parameters(MPP_Parameters input_p);
 
 #endif
