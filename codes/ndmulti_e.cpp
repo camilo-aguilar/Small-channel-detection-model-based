@@ -2,6 +2,10 @@
 #include "random.h"
 #include "QualityCandy.h"
 
+#if INCLUDE_OPENCV
+	#define INCLUDE_OPENCV_NDMULTY 1
+	#include "gui_functions.h"
+#endif
 
 void Qdelete(NeckDent *mp, int k, int *np_num, double **inter_e)
 {
@@ -392,7 +396,7 @@ double avg_Gaussian(unsigned char **y, int cols, int rows, double mean0, double 
 //#define DELTA_AMP		1.0
 //#define DELTA_OFFSET	1.0
 
-#define GAUSS_TH -0.2 //-0.2
+#define GAUSS_TH -0.2 
 /***********************************************************************/
 //
 //	n1n1n1n1n1n1n1n1n1n1n1
@@ -1471,7 +1475,6 @@ void draw_nds_neck_2D(NeckDent *mp, MPP_Parameters mpp, unsigned char **image, i
 	double di, dj, adi, adj, w, l;
 	double w_5, l_5, mt_ww, tau = mpp.gaussian_tau;
 	double y2, dtmp;
-//	double min = 255, max = 0;
 	DPoint pt;
 	
 	l = mp->length;
@@ -1499,8 +1502,8 @@ void draw_nds_neck_2D(NeckDent *mp, MPP_Parameters mpp, unsigned char **image, i
 				}
 			}
 			y2 = -exp(y2);
-//			if(y2<min) min = y2;
-//			if(y2>max) max = y2;
+
+
 			//y2 = -exp(y2);
 			pt.x = (mp->r[0].x+mp->r[3].x)/2. + dj*cos(mp->theta) + di*sin(mp->theta);
 			pt.y = (mp->r[0].y+mp->r[3].y)/2. + dj*sin(mp->theta) - di*cos(mp->theta);
@@ -1513,7 +1516,6 @@ void draw_nds_neck_2D(NeckDent *mp, MPP_Parameters mpp, unsigned char **image, i
 			}
 		}
 	}
-//	printf("min = %1.4f, max = %1.4f, diff = %1.4f, amp = %1.4f\n",min, max, max-min, mp->e0);
 }
 
 
@@ -1575,8 +1577,6 @@ void draw_nds_dent_2D(NeckDent *mp, MPP_Parameters mpp, unsigned char **image, i
 	}
 }
 
-
-
 void draw_all_nds_2D(NeckDent *mp, MPP_Parameters mpp, int np_num, 
 					 unsigned char **image, unsigned char **image2, int cols, int rows)
 {
@@ -1596,466 +1596,6 @@ void draw_all_nds_2D(NeckDent *mp, MPP_Parameters mpp, int np_num,
 
 	}
 }
-
-
-
-
-double avg_Bhattacharya(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double error_th, double t,  
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e)
-{
-	int num2, n1;
-	double di, dj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2;
-	double sum_s, sum_all, sum_ch, sum_nch, sum_all2, sum_ch2, sum_nch2, error_s, likely;
-	double Bhatta, Bhatta1, Bhatta2 = 0; 
-	int num_ch, num_nch;
-	DPoint pt,pts;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_ch = 0;
-	sum_nch = 0;
-	sum_ch2 = 0;
-	sum_nch2 = 0;
-	num_ch = 0;
-	num_nch = 0;
-	sum_s = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			y2 = (di)*(di)*mt_ww;
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di for symmetry potential
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di for symmetry potential
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				if(y2<GAUSS_TH){
-					sum_ch += dtmp;
-					sum_ch2 += dtmp*dtmp;
-					num_ch++;
-				}
-				else{
-					sum_nch += dtmp;
-					sum_nch2 += dtmp*dtmp;
-					num_nch++;
-				}
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){
-		e[0] = 0;
-		e[1] = 0;
-		e[2] = 0;
-		e[3] = 0;
-		e[4] = 0;
-		e[5] = 0;
-		return INF;
-	}
-	sum_all = (sum_ch+sum_nch)/(double)num2;
-	sum_all2 = (sum_ch2+sum_nch2)/(double)num2;
-	sum_all2 = sum_all2 - sum_all*sum_all;
-	sum_ch = sum_ch/(double)num_ch; // mu of a channel
-	sum_ch2 = sum_ch2/(double)num_ch; 
-	sum_nch = sum_nch/(double)num_nch; // mu of the outside of a channel
-	sum_nch2 = sum_nch2/(double)num_nch; 
-	sum_ch2 = sum_ch2 - sum_ch*sum_ch; // variance of a channel
-	sum_nch2 = sum_nch2 - sum_nch*sum_nch; // variance of the outside of a chanel
-
-	if(*num !=0){
-		//Bhatta = (sum_ch-sum_nch)*(sum_ch-sum_nch)/(sqrt(sum_ch2+sum_nch2));
-		Bhatta1 = pow(fabs(sum_ch-sum_nch),1)/(sqrt(sum_ch2+sum_nch2));
-		Bhatta2 = 1*log(2.*sqrt(sum_ch2*sum_nch2)/(sum_ch2+sum_nch2));
-		Bhatta = Bhatta1 + Bhatta2;
-		error_s = sum_s/((double)(n1));
-
-		if (sum_nch>sum_ch)
-		{
-			if(Bhatta < error_th)
-					likely = 1-Bhatta/error_th;
-				else
-					likely = exp(-(Bhatta-error_th)/(3.*Bhatta))-1;
-		}
-		else
-			likely = 1;
-
-		if (likely >= 0)
-			//likely = pow(likely,1.0/4.0);
-			likely = pow(likely,1.0/3.0);
-		else
-			//likely = -1*pow(-1*likely,1.0/4.0);
-			likely = -1*pow(-1*likely,1.0/3.0);
-
-	}
-	else{
-		likely = INF;
-	}
-	error_s = sqrt(error_s);
-	e[0] = sum_ch;
-	e[1] = sum_nch;
-	e[2] = sum_ch2;
-	e[3] = sum_nch2;
-	e[4] = sum_all2;
-	e[5] = 0;
-
-	return likely;
-}
-
-double avg_Bhattacharya_neck(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double error_th, double t,  
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e)
-{
-	int num2, n1;
-	double di, dj, adi, adj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2;
-	double sum_s, sum_all, sum_ch, sum_nch, sum_all2, sum_ch2, sum_nch2, error_s, likely;
-	double Bhatta, Bhatta1, Bhatta2 = 0; 
-	int num_ch, num_nch;
-	DPoint pt,pts;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_ch = 0;
-	sum_nch = 0;
-	sum_ch2 = 0;
-	sum_nch2 = 0;
-	num_ch = 0;
-	num_nch = 0;
-	sum_s = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			adi = fabs(di);
-			adj = fabs(dj);
-			if(adj<l_5-w_5){
-				y2 = di*di*mt_ww;
-			}
-			else{
-				dtmp = distance1(l_5-w_5,w_5,adj,adi);
-				if(dtmp<w_5){
-					y2 = (w_5-dtmp)*(w_5-dtmp)*mt_ww;
-				}
-				else{//4
-					y2 = 0;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di for symmetry potential
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di for symmetry potential
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				if(y2<GAUSS_TH){
-					sum_ch += dtmp;
-					sum_ch2 += dtmp*dtmp;
-					num_ch++;
-				}
-				else{
-					sum_nch += dtmp;
-					sum_nch2 += dtmp*dtmp;
-					num_nch++;
-				}
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		e[0] = 0;
-		e[1] = 0;
-		e[2] = 0;
-		e[3] = 0;
-		e[4] = 0;
-		e[5] = 0;
-		return INF;
-	}
-	sum_all = (sum_ch+sum_nch)/(double)num2;
-	sum_all2 = (sum_ch2+sum_nch2)/(double)num2;
-	sum_all2 = sum_all2 - sum_all*sum_all;
-	sum_ch = sum_ch/(double)num_ch; // mu of a channel
-	sum_ch2 = sum_ch2/(double)num_ch; 
-	sum_nch = sum_nch/(double)num_nch; // mu of the outside of a channel
-	sum_nch2 = sum_nch2/(double)num_nch; 
-	sum_ch2 = sum_ch2 - sum_ch*sum_ch; // variance of a channel
-	sum_nch2 = sum_nch2 - sum_nch*sum_nch; // variance of the outside of a chanel
-
-	if(*num !=0){
-		//Bhatta = (sum_ch-sum_nch)*(sum_ch-sum_nch)/(sqrt(sum_ch2+sum_nch2));
-		Bhatta1 = pow(fabs(sum_ch-sum_nch),1)/(sqrt(sum_ch2+sum_nch2));
-		Bhatta2 = 1*log(2.*sqrt(sum_ch2*sum_nch2)/(sum_ch2+sum_nch2));
-		Bhatta = Bhatta1 + Bhatta2;
-		error_s = sum_s/((double)(n1));
-
-		if (sum_nch>sum_ch)
-		{
-			if(Bhatta < error_th)
-					likely = 1-Bhatta/error_th;
-				else
-					likely = exp(-(Bhatta-error_th)/(3.*Bhatta))-1;
-		}
-		else
-			likely = 1;
-
-		if (likely >= 0)
-			//likely = pow(likely,1.0/4.0);
-			likely = pow(likely,1.0/4.0);
-		else
-			//likely = -1*pow(-1*likely,1.0/4.0);
-			likely = -1*pow(-1*likely,1.0/4.0);
-
-	}
-	else{
-		likely = INF;
-	}
-	error_s = sqrt(error_s);
-	e[0] = sum_ch;
-	e[1] = sum_nch;
-	e[2] = sum_ch2;
-	e[3] = sum_nch2;
-	e[4] = sum_all2;
-	e[5] = sum_all2;
-
-	return likely;
-}
-
-double avg_Bhattacharya_dent(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double error_th, double dent_l_w_ratio, double t,
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e)
-{
-	int i, num2, n1, descon_num;
-	double di, dj, adi, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2, dtmp3, dtmp4;
-	double sum_s, sum_all, sum_ch, sum_nch, sum_all2, sum_ch2, sum_nch2, error_s, likely;
-	double Bhatta, Bhatta1, Bhatta2 = 0; 
-	int num_ch, num_nch;
-	DPoint pt,pts;
-	double sum_cr;
-	double data[400];
-	double mean, std;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	if (dent_l_w_ratio*w>l){
-		e[0] = 0;
-		e[1] = 0;
-		e[2] = 0;
-		e[3] = 0;
-		e[4] = 0;
-		e[5] = 0;
-		return INF;
-	}
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_ch = 0;
-	sum_nch = 0;
-	sum_ch2 = 0;
-	sum_nch2 = 0;
-	num_ch = 0;
-	num_nch = 0;
-	sum_s = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			adi = fabs(di);
-			if(dj>0){
-				if(dj<l_5-w_5){
-					y2 = di*di*mt_ww;
-				}
-				else{
-					dtmp = distance1(l_5-w_5,w_5,dj,adi);
-					if(dtmp<w_5){
-						y2 = (w_5-dtmp)*(w_5-dtmp)*mt_ww;
-					}
-					else{//4
-						y2 = 0;
-					}
-				}
-			}
-			else{
-				if(dj>-l_5+w_5){//1
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//3
-					y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				if(y2<GAUSS_TH){
-					sum_ch += dtmp;
-					sum_ch2 += dtmp*dtmp;
-					num_ch++;
-				}
-				else{
-					sum_nch += dtmp;
-					sum_nch2 += dtmp*dtmp;
-					num_nch++;
-				}
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		e[0] = 0;
-		e[1] = 0;
-		e[2] = 0;
-		e[3] = 0;
-		e[4] = 0;
-		e[5] = 0;
-		return INF;
-	}
-	sum_all = (sum_ch+sum_nch)/(double)num2;
-	sum_all2 = (sum_ch2+sum_nch2)/(double)num2;
-	sum_all2 = sum_all2 - sum_all*sum_all;
-	sum_ch = sum_ch/(double)num_ch; // mu of a channel
-	sum_ch2 = sum_ch2/(double)num_ch; 
-	sum_nch = sum_nch/(double)num_nch; // mu of the outside of a channel
-	sum_nch2 = sum_nch2/(double)num_nch; 
-	sum_ch2 = sum_ch2 - sum_ch*sum_ch; // variance of a channel
-	sum_nch2 = sum_nch2 - sum_nch*sum_nch; // variance of the outside of a chanel
-
-	if(*num !=0){
-		Bhatta1 = pow(fabs(sum_ch-sum_nch),1)/(sqrt(sum_ch2+sum_nch2));
-		Bhatta2 = 1*log(2.*sqrt(sum_ch2*sum_nch2)/(sum_ch2+sum_nch2));
-		Bhatta = Bhatta1 + Bhatta2;
-
-		error_s = sum_s/((double)(n1));
-
-		if (sum_nch>sum_ch)
-		{
-			if(Bhatta < error_th)
-					likely = 1-Bhatta/error_th;
-				else
-					likely = exp(-(Bhatta-error_th)/(3.*Bhatta))-1;
-		}
-		else
-			likely = 1;
-
-		if (likely >= 0)
-			//likely = pow(likely,1.0/4.0);
-			likely = pow(likely,1.0/4.0);
-		else
-			//likely = -1*pow(-1*likely,1.0/4.0);
-			likely = -1*pow(-1*likely,1.0/4.0);
-
-	}
-	else{
-		likely = INF;
-	}
-	error_s = sqrt(error_s);
-
-	// check discontinuity method 2
-	n1 = 1;
-	di = -w_5;
-	data[0] = mean1;
-	sum_cr = 0;
-	for(dj = l_5-w_5; dj>-l_5+w_5; dj -= STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	dtmp2 = M_PI/2.;
-	dtmp3 = M_PI*3./2.;
-	dtmp4 = M_PI/(2.*w);
-	for(dtmp = dtmp2; dtmp<dtmp3; dtmp += dtmp4){
-		di = -w_5*sin(dtmp);
-		dj = w_5*cos(dtmp)+w_5-l_5;
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	di = w_5;
-	for(dj = -l_5+w_5; dj<=l_5-w_5; dj += STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	mean = sum_cr/(double)(n1-1);
-	std = 0;
-	for(i = 1; i< n1; i++){
-		std += (data[i]-mean)*(data[i]-mean);
-	}
-	std = sqrt(std/(double)(n1-1));
-
-	for(i = 1; i< n1; i++){
-		data[i] = (data[i]-mean)/mean;
-	}
-	descon_num = 0;
-	for(i = 3; i< n1-2; i++){
-		dtmp = (data[i-2]+data[i-1]+data[i]+data[i+1]+data[i+2])/5.;
-		if(dtmp<DENT_DISCON_TH)
-			descon_num++;
-	}
-	e[0] = sum_ch;
-	e[1] = sum_nch;
-	e[2] = sum_ch2;
-	e[3] = sum_nch2;
-	e[4] = sum_all2;
-	e[5] = (double)descon_num;
-
-	return likely;
-}
-
 
 
 double avg_Gaussian_neck(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
@@ -2409,797 +1949,7 @@ double avg_Gaussian_dent(unsigned char **y, int cols, int rows, double mean0, do
 	return error2;
 }
 
-// new fixed mean map (width : -w/2 ~ +w/2, length : -l/2 ~ +l/2)
-double avg_Gaussian_neck2(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double t,  
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e0, double *e1, double *e2, double *e3)
-{
-	int num2, n1;
-	double amp, moffset;
-	double di, dj, adi, adj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2;
-	double sum_f, sum_fy, sum_y, sum_f2, sum_y2, sum_s, error_s, error2;
-	DPoint pt,pts;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
 
-	(*num) = 0;
-	n1 = 0;
-	sum_s = 0;
-	sum_f = 0;
-	sum_fy = 0;
-	sum_y = 0;
-	sum_f2 = 0;
-	sum_y2 = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			adi = fabs(di);
-			adj = fabs(dj);
-			if(adj<l_5-w_5){
-				y2 = di*di*mt_ww;
-			}
-			else{
-				dtmp = distance1(l_5-w_5,w_5,adj,adi);
-				if(dtmp<w_5){
-					y2 = (w_5-dtmp)*(w_5-dtmp)*mt_ww;
-				}
-				else{//4
-					y2 = 0;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_f += y2;
-				sum_fy += y2*dtmp;
-				sum_y += dtmp;
-				sum_f2 += y2*y2;
-				sum_y2 += dtmp*dtmp;
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		*e0 = 0;
-		*e1 = 0;
-		*e2 = 0;
-		*e3 = 0;
-		return INF;
-	}
-	amp = ((double)(*num)*sum_fy-sum_y*sum_f)/((double)(*num)*sum_f2-sum_f*sum_f);
-	moffset = (sum_y-amp*sum_f)/((double)(*num));
-	error2 = amp*amp*sum_f2 + sum_y2 - 2*amp*sum_fy +2*amp*moffset*sum_f - 2*moffset*sum_y + (double)(*num)*moffset*moffset;
-	if(*num !=0){
-		error2 = error2/((double)(*num));
-		error_s = sum_s/((double)(n1));
-	}
-	else{
-		error2 = INF;
-	}
-	error2 = sqrt(error2);
-	error_s = sqrt(error_s);
-	*e0 = amp;
-	*e1 = error2;
-	*e2 = moffset;
-	*e3 = error_s;
-
-	return error2;
-}
-
-double avg_Gaussian_dent2(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double dent_l_w_ratio, double t,
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e0, double *e1, double *e2, double *e3)
-{
-	int i, num2, n1, descon_num;
-	double amp, moffset;
-	double di, dj, adi, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2, dtmp3, dtmp4;
-	double sum_f, sum_fy, sum_y, sum_f2, sum_y2, sum_s, error_s, error2;
-	DPoint pt,pts;
-	double sum_cr;
-	double data[400];
-	double mean, std;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	if (dent_l_w_ratio*w>l){
-		(*e0) = 0;
-		(*e1) = 0;
-		return INF;
-	}
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_s = 0;
-	sum_f = 0;
-	sum_fy = 0;
-	sum_y = 0;
-	sum_f2 = 0;
-	sum_y2 = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			adi = fabs(di);
-			if(dj>0){
-				if(dj<l_5-w_5){
-					y2 = di*di*mt_ww;
-				}
-				else{
-					dtmp = distance1(l_5-w_5,w_5,dj,adi);
-					if(dtmp<w_5){
-						y2 = (w_5-dtmp)*(w_5-dtmp)*mt_ww;
-					}
-					else{//4
-						y2 = 0;
-					}
-				}
-			}
-			else{
-				if(dj>-l_5+w_5){//1
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//3
-					y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_f += y2;
-				sum_fy += y2*dtmp;
-				sum_y += dtmp;
-				sum_f2 += y2*y2;
-				sum_y2 += dtmp*dtmp;
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		*e0 = 0;
-		*e1 = 0;
-		*e2 = 0;
-		*e3 = 0;
-		return INF;
-	}
-	amp = ((double)(*num)*sum_fy-sum_y*sum_f)/((double)(*num)*sum_f2-sum_f*sum_f);
-	moffset = (sum_y-amp*sum_f)/((double)(*num));
-	error2 = amp*amp*sum_f2 + sum_y2 - 2*amp*sum_fy +2*amp*moffset*sum_f - 2*moffset*sum_y + (double)(*num)*moffset*moffset;
-	if(*num !=0){
-		error2 = error2/((double)(*num));
-		error_s = sum_s/((double)(n1));
-	}
-	else{
-		error2 = INF;
-	}
-	error2 = sqrt(error2);
-	error_s = sqrt(error_s);
-	*e0 = amp;
-	*e1 = error2;
-	*e2 = moffset;
-
-#if 0
-// check discontinuity method 1
-	n1 = 0;
-	sum_cr = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<-l_5+w_5; dj += STEP_DX){
-			y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-			y2 = amp*(-exp(y2))+moffset;
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_cr += (y2-dtmp)*(y2-dtmp);
-				(n1)++;
-			}
-		}
-	}
-	if(*num !=0){
-		sum_cr = sum_cr/((double)(n1));
-	}
-	else{
-		sum_cr = INF;
-	}
-	sum_cr = sqrt(sum_cr);
-	*e3 = sum_cr;
-#else
-// check discontinuity method 2
-	n1 = 1;
-	di = -w_5;
-	data[0] = mean1;
-	sum_cr = 0;
-	for(dj = l_5-w_5; dj>-l_5+w_5; dj -= STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	dtmp2 = M_PI/2.;
-	dtmp3 = M_PI*3./2.;
-	dtmp4 = M_PI/(2.*w);
-	for(dtmp = dtmp2; dtmp<dtmp3; dtmp += dtmp4){
-		di = -w_5*sin(dtmp);
-		dj = w_5*cos(dtmp)+w_5-l_5;
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	di = w_5;
-	for(dj = -l_5+w_5; dj<=l_5-w_5; dj += STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		sum_cr += data[n1];
-		n1++;
-	}
-	mean = sum_cr/(double)(n1-1);
-	std = 0;
-	for(i = 1; i< n1; i++){
-		std += (data[i]-mean)*(data[i]-mean);
-	}
-	std = sqrt(std/(double)(n1-1));
-
-	for(i = 1; i< n1; i++){
-		data[i] = (data[i]-mean)/mean;
-	}
-	descon_num = 0;
-	for(i = 3; i< n1-2; i++){
-		dtmp = (data[i-2]+data[i-1]+data[i]+data[i+1]+data[i+2])/5.;
-		if(dtmp<DENT_DISCON_TH)
-			descon_num++;
-	}
-	*e3 = (double)descon_num;
-#endif
-
-	return error2;
-}
-
-double avg_Gaussian_neck3(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double t,  
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e0, double *e1, double *e2, double *e3)
-{
-	int num2, n1;
-	double amp, moffset;
-	double di, dj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2;
-	double sum_f, sum_fy, sum_y, sum_f2, sum_y2, sum_s, error_s, error2;
-	DPoint pt,pts;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_s = 0;
-	sum_f = 0;
-	sum_fy = 0;
-	sum_y = 0;
-	sum_f2 = 0;
-	sum_y2 = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			if(dj>0){
-				if(l_5-dj>fabs(di)){//2
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//4
-					y2 = (l_5-dj)*(l_5-dj)*mt_ww;
-				}
-			}
-			else{
-				if(l_5+dj>fabs(di)){//1
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//3
-					y2 = (l_5+dj)*(l_5+dj)*mt_ww;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_f += y2;
-				sum_fy += y2*dtmp;
-				sum_y += dtmp;
-				sum_f2 += y2*y2;
-				sum_y2 += dtmp*dtmp;
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		*e0 = 0;
-		*e1 = 0;
-		*e2 = 0;
-		*e3 = 0;
-		return INF;
-	}
-	amp = ((double)(*num)*sum_fy-sum_y*sum_f)/((double)(*num)*sum_f2-sum_f*sum_f);
-	moffset = (sum_y-amp*sum_f)/((double)(*num));
-	error2 = amp*amp*sum_f2 + sum_y2 - 2*amp*sum_fy +2*amp*moffset*sum_f - 2*moffset*sum_y + (double)(*num)*moffset*moffset;
-	if(*num !=0){
-		error2 = error2/((double)(*num));
-		error_s = sum_s/((double)(n1));
-	}
-	else{
-		error2 = INF;
-	}
-	error2 = sqrt(error2);
-	error_s = sqrt(error_s);
-	*e0 = amp;
-	*e1 = error2;
-	*e2 = moffset;
-	*e3 = error_s;
-
-	return error2;
-}
-
-#define WEIGHT_CRITICAL_REGION 0.1
-// new fixed mean map (width : -w/2 ~ +w/2, length : -l/2 ~ +l/2)
-double avg_Gaussian_dent3(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double dent_l_w_ratio, double t,
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e0, double *e1, double *e2, double *e3)
-{
-	int num2, n1;
-	double amp, moffset;
-	double di, dj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2, dtmp3, dtmp4;
-	double sum_f, sum_fy, sum_y, sum_f2, sum_y2, sum_s, error_s, error2;
-	DPoint pt,pts;
-	double sum_cr;
-	double data[400];
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	if (dent_l_w_ratio*w>l){
-		(*e0) = 0;
-		(*e1) = 0;
-		return INF;
-	}
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_s = 0;
-	sum_f = 0;
-	sum_fy = 0;
-	sum_y = 0;
-	sum_f2 = 0;
-	sum_y2 = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			if(dj>0){
-				if(l_5-dj>fabs(di)){//2
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//4
-					y2 = (l_5-dj)*(l_5-dj)*mt_ww;
-				}
-			}
-			else{
-				if(dj>-l_5+w_5){//1
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//3
-					y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_f += y2;
-				sum_fy += y2*dtmp;
-				sum_y += dtmp;
-				sum_f2 += y2*y2;
-				sum_y2 += dtmp*dtmp;
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		*e0 = 0;
-		*e1 = 0;
-		*e2 = 0;
-		*e3 = 0;
-		return INF;
-	}
-	amp = ((double)(*num)*sum_fy-sum_y*sum_f)/((double)(*num)*sum_f2-sum_f*sum_f);
-	moffset = (sum_y-amp*sum_f)/((double)(*num));
-	error2 = amp*amp*sum_f2 + sum_y2 - 2*amp*sum_fy +2*amp*moffset*sum_f - 2*moffset*sum_y + (double)(*num)*moffset*moffset;
-	if(*num !=0){
-		error2 = error2/((double)(*num));
-		error_s = sum_s/((double)(n1));
-	}
-	else{
-		error2 = INF;
-	}
-	error2 = sqrt(error2);
-	error_s = sqrt(error_s);
-	*e0 = amp;
-	*e1 = error2;
-	*e2 = moffset;
-
-	// check discontinuity method 1
-	n1 = 0;
-	sum_cr = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<-l_5+w_5; dj += STEP_DX){
-			y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-			y2 = amp*(-exp(y2))+moffset;
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_cr += (y2-dtmp)*(y2-dtmp);
-				(n1)++;
-			}
-		}
-	}
-	if(*num !=0){
-		sum_cr = sum_cr/((double)(n1));
-	}
-	else{
-		sum_cr = INF;
-	}
-	sum_cr = sqrt(sum_cr);
-	*e3 = sum_cr;
-
-	// check discontinuity method 2
-	n1 = 1;
-	di = -w_5;
-	data[0] = mean1;
-	for(dj = l_5-w_5; dj>-l_5+w_5; dj -= STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		n1++;
-	}
-	dtmp2 = M_PI/2.;
-	dtmp3 = M_PI*3./2.;
-	dtmp4 = M_PI/(2.*w);
-	for(dtmp = dtmp2; dtmp<dtmp3; dtmp += dtmp4){
-		di = -w_5*sin(dtmp);
-		dj = w_5*cos(dtmp)+w_5-l_5;
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		n1++;
-	}
-	di = w_5;
-	for(dj = -l_5+w_5; dj<=l_5-w_5; dj += STEP_DX){
-		pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-		pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.))
-			data[n1] = real_coord(y,pt.y,pt.x);
-		else
-			data[n1] = data[n1-1];
-		n1++;
-	}
-
-	return error2;
-}
-
-
-void avg_Gaussian_dent_save(unsigned char **y, int cols, int rows, NeckDent *mp, MPP_Parameters mpp, int *num)
-{
-	int i, n1;
-	double di, dj;
-	double w_5, l_5;
-	double dtmp, dtmp2, dtmp3, dtmp4;
-	DPoint pt;
-	double data[100],ptx[100],pty[100];
-	FILE *fp1;
-	char filename[400];
-
-	sprintf(filename, "dent_continuity.txt");
-	if ((fp1 = fopen(filename, "wb")) == NULL ) {
-		printf("Cannot open file %s\n", filename);
-		exit(1);
-	}
-	
-	w_5 = mp->width/2.;
-	l_5 = mp->length/2.;
-
-	// check discontinuity method 2
-	n1 = 1;
-	di = -w_5;
-	data[0] = mpp.mean[1];
-	for(dj = l_5-w_5; dj>-l_5+w_5; dj -= STEP_DX){
-		pt.x = (mp->r[0].x+mp->r[3].x)/2. + dj*cos(mp->theta) + di*sin(mp->theta);
-		pt.y = (mp->r[0].y+mp->r[3].y)/2. + dj*sin(mp->theta) - di*cos(mp->theta);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-			data[n1] = real_coord(y,pt.y,pt.x);
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		else{
-			data[n1] = data[n1-1];
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		n1++;
-	}
-	dtmp2 = M_PI/2.;
-	dtmp3 = M_PI*3./2.;
-	dtmp4 = M_PI/(2.*mp->width);
-	for(dtmp = dtmp2; dtmp<dtmp3; dtmp += dtmp4){
-		di = -w_5*sin(dtmp);
-		dj = w_5*cos(dtmp)+w_5-l_5;
-		pt.x = (mp->r[0].x+mp->r[3].x)/2. + dj*cos(mp->theta) + di*sin(mp->theta);
-		pt.y = (mp->r[0].y+mp->r[3].y)/2. + dj*sin(mp->theta) - di*cos(mp->theta);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-			data[n1] = real_coord(y,pt.y,pt.x);
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		else{
-			data[n1] = data[n1-1];
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		n1++;
-	}
-	di = w_5;
-	for(dj = -l_5+w_5; dj<=l_5-w_5; dj += STEP_DX){
-		pt.x = (mp->r[0].x+mp->r[3].x)/2. + dj*cos(mp->theta) + di*sin(mp->theta);
-		pt.y = (mp->r[0].y+mp->r[3].y)/2. + dj*sin(mp->theta) - di*cos(mp->theta);
-		if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-			data[n1] = real_coord(y,pt.y,pt.x);
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		else{
-			data[n1] = data[n1-1];
-			ptx[n1] = pt.x;
-			pty[n1] = pt.y;
-		}
-		n1++;
-	}
-	for(i = 1; i<n1; i++)
-		fprintf(fp1,"%1.2f, ", data[i]);
-	fprintf(fp1,"\r\n");
-	for(i = 1; i<n1; i++)
-		fprintf(fp1,"%1.2f, ", ptx[i]);
-	fprintf(fp1,"\r\n");
-	for(i = 1; i<n1; i++)
-		fprintf(fp1,"%1.2f, ", pty[i]);
-	fprintf(fp1,"\r\n");
-	fprintf(fp1,"m1, %1.2f\r\n", mpp.mean[1]);
-	fprintf(fp1,"v1, %1.2f\r\n", mpp.vari[1]);
-	fclose(fp1);
-}
-
-// new fixed mean map (width : -w/2 ~ +w/2, length : -l/2 ~ +l/2)
-double avg_Gaussian_dent4(unsigned char **y, int cols, int rows, double mean0, double vari0, double mean1, double vari1, 
-					double variance, double gaussian_tau, double dent_l_w_ratio, double t,
-					DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, int *num, double *e0, double *e1, double *e2, double *e3)
-{
-	int num2, n1;
-	double amp, moffset;
-	double di, dj, w, l;
-	double w_5, l_5, mt_ww, tau = gaussian_tau;
-	double y2, dtmp, dtmp2;
-	double sum_f, sum_fy, sum_y, sum_f2, sum_y2, sum_s, error_s, error2;
-	DPoint pt,pts;
-	double weight, sum_weight;
-	
-	l = dist(pt2, pt1);
-	w = dist(pt3, pt1);
-	if (dent_l_w_ratio*w>l){
-		(*e0) = 0;
-		(*e1) = 0;
-		return INF;
-	}
-	num2 = 0;
-	w_5 = w/2.;
-	l_5 = l/2.;
-	mt_ww = -tau/(w*w);
-
-	(*num) = 0;
-	n1 = 0;
-	sum_weight = 0;
-	sum_s = 0;
-	sum_f = 0;
-	sum_fy = 0;
-	sum_y = 0;
-	sum_f2 = 0;
-	sum_y2 = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			weight = 1;
-			if(dj>0){
-				if(l_5-dj>fabs(di)){//2
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//4
-					y2 = (l_5-dj)*(l_5-dj)*mt_ww;
-				}
-			}
-			else{
-				if(dj>-l_5+w_5){//1
-					y2 = (di)*(di)*mt_ww;
-				}
-				else{//3
-					y2 = ((w_5-l_5-dj)*(w_5-l_5-dj)+di*di)*mt_ww;
-					weight = WEIGHT_CRITICAL_REGION;
-				}
-			}
-			y2 = (-exp(y2));
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			pts.x = (pt1.x+pt4.x)/2. + dj*cos(t) - di*sin(t);//-di
-			pts.y = (pt1.y+pt4.y)/2. + dj*sin(t) + di*cos(t);//-di
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				dtmp = real_coord(y,pt.y,pt.x);
-				sum_f += weight*y2;
-				sum_fy += weight*y2*dtmp;
-				sum_y += weight*dtmp;
-				sum_f2 += weight*y2*y2;
-				sum_y2 += weight*dtmp*dtmp;
-				sum_weight += weight;
-				(*num)++;
-				if((pts.x >= 0.)&&(pts.x < (double)cols-1.)&&(pts.y >= 0.)&&(pts.y < (double)rows-1.)){
-					dtmp2 = real_coord(y,pts.y,pts.x);
-					sum_s += (dtmp-dtmp2)*(dtmp-dtmp2);
-					n1++;
-				}
-			}
-			num2++;
-		}
-	}
-	if(((double)(*num))/(double)num2<OBJECT_IN_RATIO){ 
-		*e0 = 0;
-		*e1 = 0;
-		*e2 = 0;
-		*e3 = 0;
-		return INF;
-	}
-	sum_f = sum_f/sum_weight*(double)(*num);
-	sum_fy = sum_fy/sum_weight*(double)(*num);
-	sum_y = sum_y/sum_weight*(double)(*num);
-	sum_f2 = sum_f2/sum_weight*(double)(*num);
-	sum_y2 = sum_y2/sum_weight*(double)(*num);
-	amp = ((double)(*num)*sum_fy-sum_y*sum_f)/((double)(*num)*sum_f2-sum_f*sum_f);
-	moffset = (sum_y-amp*sum_f)/((double)(*num));
-	error2 = amp*amp*sum_f2 + sum_y2 - 2*amp*sum_fy +2*amp*moffset*sum_f - 2*moffset*sum_y + (double)(*num)*moffset*moffset;
-	if(*num !=0){
-		error2 = error2/((double)(*num));
-		error_s = sum_s/((double)(n1));
-	}
-	else{
-		error2 = INF;
-	}
-	error2 = sqrt(error2);
-	error_s = sqrt(error_s);
-	*e0 = amp;
-	*e1 = error2;
-	*e2 = moffset;
-	*e3 = error_s;
-
-	return error2;
-}
-
-
-
-int channel_shape(unsigned char **y, int cols, int rows, double t, DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, double *ch_y,  double *ch_x)
-{
-	double di, dj, w, w_5, l_5, sum0;
-	DPoint pt;
-	int i, n;
-
-	l_5 = dist(pt2, pt1)/2.;
-	w = dist(pt3, pt1);
-	w_5 = w/2.;
-
-	i = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		sum0 = 0.;
-		n = 0;
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				sum0 += real_coord(y,pt.y,pt.x);
-				n++;
-			}
-		}
-		ch_y[i] = sum0/(double)n;	// mean
-		ch_x[i] = di/w;
-		i++;
-	}
-	i = 0;
-	for(di = -w_5; di<=w_5; di += STEP_DY){
-		sum0 = 0.;
-		n = 0;
-		for(dj = -l_5; dj<=l_5; dj += STEP_DX){
-			pt.x = (pt1.x+pt4.x)/2. + dj*cos(t) + di*sin(t);
-			pt.y = (pt1.y+pt4.y)/2. + dj*sin(t) - di*cos(t);
-			if((pt.x >= 0.)&&(pt.x < (double)cols-1.)&&(pt.y >= 0.)&&(pt.y < (double)rows-1.)){
-				sum0 += (real_coord(y,pt.y,pt.x)-ch_y[i])*(real_coord(y,pt.y,pt.x)-ch_y[i]);
-				n++;
-			}
-		}
-//		ch_y[i] = sum0/(double)n;	// variance
-		i++;
-	}
-	return i;
-}
 
 double min_val(double a, double b, double c, double d)
 {
@@ -3316,10 +2066,6 @@ void Gaussian_beta(double **beta_img[], double *beta, int cols, int rows, NeckDe
 		}
 	}
 }
-
-
-
-
 
 
 double intersection_area(DPoint pt1, DPoint pt2, DPoint pt3, DPoint pt4, 
@@ -3491,36 +2237,18 @@ int nd_Single_Object(unsigned char **yimg, NeckDent *mp, double *mean, double *v
 		
 		mp->single_E  = mpp.lambda_e*error;
 	}
-	#if 0
-		else if (mp->type == NDTYPE_NECKING)
-		{
-			mp->single_E  = avg_Gaussian_neck3(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
-							mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], mpp.blur, mpp.blur_size, &n, &e0, &e1, &e2);
-							
-			mp->single_E  = exp(mpp.lambda_e*(mp->single_E - mpp.error_th))-(e0-mpp.amp_th);
-		}
-		else if (mp->type == NDTYPE_DENTING)
-		{
-			mp->single_E  = avg_Gaussian_dent3(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
-			mpp.dent_l_w_ratio, mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], mpp.blur, mpp.blur_size, &n, &e0, &e1, &e2);
-			mp->single_E  = exp(mpp.lambda_e*(mp->single_E - mpp.error_th))-(e0-mpp.amp_th);
-		}
-	#else
-		else if (mp->type == NDTYPE_NECKING)
-		{
-			error  = avg_t_test_neck(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
-				mpp.error_th, mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], &n, mp->e);
-			mp->single_E  = mpp.lambda_e*error;//-mpp.lambda_l*(mp->length-mpp.length_th)+mpp.lambda_s*exp(mp->e[3]-mpp.symmetry_th)+mpp.lambda_nc*mp->e[5];
-		}
-		else if (mp->type == NDTYPE_DENTING)
-		{
-			error  = avg_t_test_dent(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
-				mpp.error_th, mpp.dent_l_w_ratio, mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], &n, mp->e);
-			mp->single_E  = mpp.lambda_e*error + mpp.lambda_dc*mp->e[27]; //-mpp.lambda_l*(mp->length-mpp.length_th)+mpp.lambda_s*exp(mp->e[3]-mpp.symmetry_th)+mpp.lambda_dc*mp->e[5];
-		}
-	#endif
-	
-
+	else if (mp->type == NDTYPE_NECKING)
+	{
+		error  = avg_t_test_neck(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
+		mpp.error_th, mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], &n, mp->e);
+		mp->single_E  = mpp.lambda_e*error;//-mpp.lambda_l*(mp->length-mpp.length_th)+mpp.lambda_s*exp(mp->e[3]-mpp.symmetry_th)+mpp.lambda_nc*mp->e[5];
+	}
+	else if (mp->type == NDTYPE_DENTING)
+	{
+		error  = avg_t_test_dent(yimg, cols, rows, mean[0], vari[0], mean[1], vari[1], variance, mpp.gaussian_tau,
+			mpp.error_th, mpp.dent_l_w_ratio, mp->theta, mp->r[0], mp->r[1],mp->r[2], mp->r[3], &n, mp->e);
+		mp->single_E  = mpp.lambda_e*error + mpp.lambda_dc*mp->e[27]; //-mpp.lambda_l*(mp->length-mpp.length_th)+mpp.lambda_s*exp(mp->e[3]-mpp.symmetry_th)+mpp.lambda_dc*mp->e[5];
+	}
 	else
 	{
 		return 0;
@@ -3544,18 +2272,20 @@ void nd_GenCornerPoint(NeckDent *mp)
 	}
 }
 
-#if 1
 //Give birth with random values of a and v depending on image.
 void nd_Qbirth(int i, int j, NeckDent *mp, MPP_Parameters mpp)
 {
 	
 	double a, b;
+	int counter = 0;
 	if(mpp.nd_type_num == 0)
 	{
+
 		mp->type = NDTYPE_BOTH;
 	}
 	if(mpp.nd_type_num == 1)
 	{
+
 		mp->type = NDTYPE_NECKING;
 	}
 	else if(mpp.nd_type_num == 2)
@@ -3570,139 +2300,30 @@ void nd_Qbirth(int i, int j, NeckDent *mp, MPP_Parameters mpp)
 	
 	mp->center.x = (double)j;
 	mp->center.y = (double)i;
+
 	do
 	{
+		counter++;
 		mp->width = ubnd_random( mpp.widthmin, mpp.widthmax);
 		mp->length = ubnd_random( mpp.lengthmin, mpp.lengthmax);
-	}while(mp-> length <= 2*mp->width);
+		if(counter == 100)
+		{
+			printf("Error of Length/Width Parameters for Neck Dent MPP\n");
+			exit(1);
+		}
+
+	}while(mp-> length <= mpp.dent_l_w_ratio * mp->width);
 		
 	
-	if(mpp.fixed_param_num == 2)
-	{
-		a = random2();
-		if (a < 0.5)
-		{
-			a = 0.20*M_PI;//-0.1;
-			b = 0.20*M_PI;//+0.1;
-		}
-		else
-		{
-			a = 0.70*M_PI;//-0.1;
-			b = 0.70*M_PI;//+0.1;
-		}
-		mp->theta = ubnd_random(a,b);
-	}
-	else if(mpp.fixed_param_num == 6)
-	{
-		a = random2();
-		if (a < 0.4)
-		{
-			a = 0.31*M_PI;//-0.1;
-			b = 0.31*M_PI;//+0.1;
-		}
-		else if (a < 0.8)
-		{
-			a = 0.77*M_PI;//-0.1;
-			b = 0.77*M_PI;//+0.1;
-		}
-		else
-		{
-			a = 0.05*M_PI;//-0.1;
-			b = 0.05*M_PI;//+0.1;
-		}
-		mp->theta = ubnd_random(a,b);
-	}
-	else
-	{
-		a = 0;
-		if(mp->type == NDTYPE_DENTING)
-			b = 2*M_PI;
-		else
-			b = M_PI;
-		mp->theta = ubnd_random(a,b);
-	}
+
+	a = mpp.thetamin;
+	b = mpp.thetamax;
+	mp->theta = ubnd_random(a,b);
+	
 	mp->single_E = 0;
 	mp->multiple_E = 0;
 	
 }
-#endif
-#if 0
-//Give birth with random values of a and v depending on image.
-void nd_Qbirth(int i, int j, NeckDent *mp, MPP_Parameters mpp)
-{
-	
-	double a, b;
-	if(mpp.nd_type_num == 2)
-	{
-		// rand() fn is [0,1]
-		mp->type = (ND_Type)int_random(NDTYPE_NECKING,NDTYPE_DENTING);
-	}
-	else if(mpp.nd_type_num == 1)
-	{
-		mp->type = NDTYPE_NECKING;
-	}
-	else
-	{
-		mp->type = NDTYPE_BOTH;
-	}
-	
-	mp->center.x = (double)j;
-	mp->center.y = (double)i;
-	mp->width = ubnd_random( mpp.widthmin, mpp.widthmax);
-	a = mpp.lengthmin;
-	b = mpp.lengthmax;
-	mp->length = ubnd_random( a, b);
-
-	if(mpp.fixed_param_num == 2)
-	{
-		a = random2();
-		if (a < 0.5)
-		{
-			a = 0.20*M_PI;//-0.1;
-			b = 0.20*M_PI;//+0.1;
-		}
-		else
-		{
-			a = 0.70*M_PI;//-0.1;
-			b = 0.70*M_PI;//+0.1;
-		}
-		mp->theta = ubnd_random(a,b);
-	}
-	else if(mpp.fixed_param_num == 6)
-	{
-		a = random2();
-		if (a < 0.4)
-		{
-			a = 0.31*M_PI;//-0.1;
-			b = 0.31*M_PI;//+0.1;
-		}
-		else if (a < 0.8)
-		{
-			a = 0.77*M_PI;//-0.1;
-			b = 0.77*M_PI;//+0.1;
-		}
-		else
-		{
-			a = 0.05*M_PI;//-0.1;
-			b = 0.05*M_PI;//+0.1;
-		}
-		mp->theta = ubnd_random(a,b);
-	}
-	else
-	{
-		a = 0;
-		if(mp->type == NDTYPE_DENTING)
-			b = 2*M_PI;
-		else
-			b = M_PI;
-		mp->theta = ubnd_random(a,b);
-	}
-	mp->single_E = 0;
-	mp->multiple_E = 0;
-}
-#endif
-
-
 
 
 
@@ -4315,7 +2936,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows)
 {
-	
+	printf("Starting Multiple Birth and Death\n");
 	unsigned char **MP_exist;
 	int i, j, k, iter;
 	double dtmp;
@@ -4329,6 +2950,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 	MP_exist = (unsigned char **)get_img(cols, rows, sizeof(unsigned char));
 	inter_e = (double **)get_img(MAX_MKPNT_NUM, MAX_MKPNT_NUM, sizeof(double));
 	
+
 	/* Initialize MP_Exist to 0*/
 	for (i = 0; i < rows; i++)
 		for (j = 0; j < cols; j++){
@@ -4336,24 +2958,26 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		}
 		
 
-	
+	mp = new NeckDent [MAX_MKPNT_NUM];	
 	for(i = 0; i < MAX_MKPNT_NUM; i++){
 		mp[i].state = STATE_NON_EXIST;
 	}
 	
+
+
 	for (i = 0; i < MAX_MKPNT_NUM; i++)
 		for (j = 0; j < MAX_MKPNT_NUM; j++){
 			inter_e[i][j] = 0;
 		}
+
+
 	np_num = 0;
 
-
-	
+		
 	for (iter = 1;iter <= mpp.iter_num; iter++)
 	{ //MAX_MPP_ITER_NUM
 		birth_rate = delta*mpp.b_zero;
 		printf("iter=%d\n",iter);
-
 		//----------------------- Birth -------------------------//
 		for (i = 5;i<rows-5;i++){
 			for (j = 5;j<cols-5;j++){
@@ -4367,9 +2991,11 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 							printf("BREAK ALERT, i: %d j: %d \n", i,j);
 							break;
 						}
+						
 						/*Create Semi-Random Parameters for w,l,theta */
 						nd_Qbirth(i, j, &(mp[np_num]), mpp);
 						
+
 						/* Rotate Corner Points */
 						nd_GenCornerPoint(&(mp[np_num]));
 						
@@ -4384,6 +3010,10 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 							mp[np_num].multiple_E = 0.;
 							np_num ++;
 						}
+
+						#if INCLUDE_OPENCV_NDMULTY
+							draw_neck_dent(yimg, mp, mpp, rows, cols,np_num);
+						#endif
 					}//End Birth
 				}//End if it doesnt exist
 			}
@@ -4407,7 +3037,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 					d_rate = 1;
 				else
 					d_rate = (delta*d_beta)/(1.0+delta*d_beta);
-//				printf("k=%d, dp=%1.2f\n",k,d_rate);
+
 			}
 
 			dtmp = ((double)rand()/RAND_MAX);
@@ -4438,8 +3068,11 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		
 		
 	} 
+
 	free_img((void **)MP_exist);
 	free_img((void **)inter_e);
+
+
 	return np_num;
 	}
 
@@ -4456,13 +3089,11 @@ int nd_mpp_rjmcmc(unsigned char **yimg, double **lm, double *mean, double *vari,
 	int np_num;
 	char filename[1024];
 	int jmp_type;
-//	double ch_y[MAX_MKPNT_NUM], ch_x[MAX_MKPNT_NUM];
 	FILE *fp;
 	double accum_jmp_prob[NUM_JUMP_TYPE+1];
 	double betaT0 = mpp.betampp/mpp.T0;
 	double betaT = betaT0;
 	double **inter_e;
-//	double avg_U, vari_U;
 	int	   return_val;
 	
 	accum_jmp_prob[0]= 0.;
@@ -4587,20 +3218,3 @@ void calculate_betaimg(double **beta_img[], double *beta, NeckDent *mp,
 		Gaussian_beta(beta_img, beta, cols, rows, &(mp[k]), mpp);
 	}
 }
-
-#if 0
-double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols)
-{
-	unsigned char xt255;
-	int i, j;
-	double misclassed = 0;
-
-	for (i = 0; i < rows; i++)
-		for (j = 0; j < cols; j++){
-			xt255 = (unsigned char)xt[i][j] * 255 / (classes - 1);
-			if(xt255!=gt[i][j]) misclassed += 1.0;
-		}
-	misclassed = misclassed*100/(cols*rows); // percentage of misclassified pixels
-	return misclassed;
-}
-#endif

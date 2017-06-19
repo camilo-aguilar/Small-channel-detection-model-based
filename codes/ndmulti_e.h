@@ -17,7 +17,7 @@
 #include "Parameters.h"
 
 #define USE_BIRTHMAP
-#define MAX_MKPNT_NUM		1000//220		// Max marked point number
+#define MAX_MKPNT_NUM		220//1000//220		// Max marked point number
 //#define SIMPLE_CH
 #ifdef SIMPLE_CH
 	#define RJMCMC
@@ -93,8 +93,7 @@ typedef struct neckdent
 	double			width;
 	double			length;
 	double			theta;		// direction
-//	double			length; 
-//	double			width;
+
 	DPoint			r[12];
 	double			single_E;	// single energy
 	double			multiple_E;	// multiple energy
@@ -109,23 +108,6 @@ int nd_mpp_rjmcmc(unsigned char **yimg, double **lm, double *mean, double *vari,
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
 		   int cols, int rows);
 
-/*
-int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mean,
-			double *vari, double variance, NeckDent *mp,
-			MPP_Parameters mpp, double *total_e, int *mp_num, 
-			int cols, int rows, IplImage *image, const char* win_name);
-
-
-
-void test_single_object(unsigned char **yimg, double *mean, double *vari, double variance,
-						MPP_Parameters mpp, 
-						int cols, int rows, IplImage *image, const char* win_name);
-
-
-void draw_all_nds(NeckDent *mp, int np_num, IplImage *image, int energy_type, double alpha,
-				  double lambda_int, int line_thickness);
-
-*/
 void calculate_betaimg(double **beta_img[], double *beta, NeckDent *mp, 
 					   int np_num, MPP_Parameters mpp, int cols, int rows);
 
@@ -140,6 +122,5 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
 			int cols, int rows);
 
-//double calculate_PMP(unsigned char **xt, unsigned char **gt, int classes, int rows, int cols);
 
 #endif

@@ -501,17 +501,6 @@ int Candy_Model(double **input_img, double **lm, double ****img_mpp_l, double **
 				if(/*Echange)*/i%(mpp.iter_num/NUM_WINDOWS)==0)
 				{						
 					
-					printf("\n Vo:%.2f\n", C->Vo*C->gamma_d);
-					printf("\n Veo:%.2f\n", C->VReo*C->w_eo);
-					printf("\n Vio:%.2f\n", C->VRio);
-					printf("\n Vnf:%.2f\n", C->n_f*C->w_f);
-					printf("\n Vns:%.2f\n", C->n_s*C->w_s);
-					printf("\n Vnd:%.2f\n", C->n_d*C->w_d);
-
-					printf("1:%.2f\n", E1);
-					printf("2:%.2f\n", E2);
-
-					printf("Loop # %d\n", i);
 					//printf("2:%.2f\n", (-C->Vo*C->gamma_d) - ((double)C->n_f*C->w_f));
 					display_image_double(input_img, height, width, C);
 					

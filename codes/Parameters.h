@@ -16,8 +16,8 @@
 
 #if INCLUDE_OPENCV
   #define DELAY_FOR_DISPLAY 10 //set 0 for press key to continue
-  #define INCLUDE_OPENCV_FREE_SEG    1
-  #define INCLUDE_OPENCV_SINGLE_SEG 1
+  #define INCLUDE_OPENCV_FREE_SEG    0
+  #define INCLUDE_OPENCV_SINGLE_SEG  0
   #define INCLUDE_OPENCV_DOUBLE_SEG  0
   #define INCLUDE_OPENCV_TRANSITION  0
 #endif
@@ -77,7 +77,7 @@
 #define INITIAL_T0                      0.8
 
 #define DECREASE_COEFFICIENT            0.999999
-#define BETA_MPP                        14    
+#define BETA_MPP                        2.9    
 
 /* DEATH = 1 - BIRTH */
 #define P_BIRTH_F                       0.5
@@ -108,7 +108,7 @@
 /****************************************************
  *        PARAMETERS FOR EM/MPM       * 
  ****************************************************/
-#define BETTA_FOR_MPP                   27.0
+#define BETTA_FOR_MPP                   2.9
 #define GAUSSIAN_TAU                    17.0 
 
 
@@ -303,6 +303,8 @@ typedef struct mpp_parameters
   double    sigma;
 
   int     optimization_type;
+
+  int FOREGROUND_COLOR; //0 background is lighter than foreground, 1 background is darker than foreground
 
 } MPP_Parameters;
 

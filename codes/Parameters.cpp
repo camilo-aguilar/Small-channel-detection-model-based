@@ -184,26 +184,59 @@ MPP_Parameters _parse_hard_parameters(MPP_Parameters input_p)
 	{
 		printf("No hard parameters file, using default hard_parameters \n");
 		return input_p;
+	}else
+	{
+		printf("Parsing Hard Paraters...\n");
 	}
 
 	char tmp_str[30];
 	MPP_Parameters output_p = input_p;	
-	int number_of_parameters = 0;
-	int i = 0;
+	
+	
+	if(fscanf(f, "%s : %d",tmp_str , &output_p.FOREGROUND_COLOR) != 2)
+	{	
+		printf("Error Format Parameter: FOREGROUND COLOR\n");
+		exit(1);
+	}
 
-	fscanf(f, "%d", &number_of_parameters);
- 	for(i=0; i< number_of_parameters; i++)
- 	{
- 		fscanf(f, "%s : %d",tmp_str , &output_p.optimization_type);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmin);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmax);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.widthmin);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.widthmax);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.thetamin);
- 		fscanf(f, "%s : %lf",tmp_str , &output_p.thetamax);
+	if(fscanf(f, "%s : %d",tmp_str , &output_p.optimization_type) !=2)
+	{
+		printf("Error Format Parameter: Optimization Type\n");
+		exit(1);
+	}
+		
+	if(fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmin) !=2)
+	{
+		printf("Error Format Parameter: lengthmin\n");
+		exit(1);
+	}
+	if(fscanf(f, "%s : %lf",tmp_str , &output_p.lengthmax) !=2 )
+	{
+		printf("Error Format Parameter: lengthmax\n");
+		exit(1);
+	}
+	if( fscanf(f, "%s : %lf",tmp_str , &output_p.widthmin) !=2 )
+	{
+		printf("Error Format Parameter: Widthmin\n");
+		exit(1);
+	}
 
- 		
- 	}	
+	if( fscanf(f, "%s : %lf",tmp_str , &output_p.widthmax) !=2 )
+	{
+		printf("Error Format Parameter: Widthmax\n");
+		exit(1);
+	}
+	if(fscanf(f, "%s : %lf",tmp_str , &output_p.thetamin) !=2 )
+	{
+		printf("Error Format Parameter: Theta Min\n");
+		exit(1);
+	}
+	if(fscanf(f, "%s : %lf",tmp_str , &output_p.thetamax) !=2 )
+	{
+		printf("Error Format Parameter: Theta Max\n");
+		exit(1);
+	}
+
 
  	return output_p;
 	
