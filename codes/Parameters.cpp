@@ -192,13 +192,22 @@ MPP_Parameters _parse_hard_parameters(MPP_Parameters input_p)
 	char tmp_str[30];
 	MPP_Parameters output_p = input_p;	
 	
-	
+	/* FOREGROUND COLOR */
 	if(fscanf(f, "%s : %d",tmp_str , &output_p.FOREGROUND_COLOR) != 2)
 	{	
 		printf("Error Format Parameter: FOREGROUND COLOR\n");
 		exit(1);
 	}
 
+	/* OBJECT TYPE */
+	/* 0: Necking and Denting, 1: Necking Only, 2: Denting Only */
+	if(fscanf(f, "%s : %d",tmp_str , &output_p.nd_type_num) !=2)
+	{
+		printf("Error Format Parameter: Optimization Type\n");
+		exit(1);
+	}
+
+	/* OPTIMIZATION COLOR */
 	if(fscanf(f, "%s : %d",tmp_str , &output_p.optimization_type) !=2)
 	{
 		printf("Error Format Parameter: Optimization Type\n");

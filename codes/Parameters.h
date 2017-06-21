@@ -144,7 +144,7 @@
 #define LAMBDA_RJMCMC        30000
 #define LAMBDA_L         0
 #define LAMBDA_INT         0.005
-#define CHANNEL_TYPES        1
+#define CHANNEL_TYPES        0
 
 
 /****************************************************

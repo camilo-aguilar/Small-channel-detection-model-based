@@ -2321,8 +2321,7 @@ void nd_Qbirth(int i, int j, NeckDent *mp, MPP_Parameters mpp)
 	mp->theta = ubnd_random(a,b);
 	
 	mp->single_E = 0;
-	mp->multiple_E = 0;
-	
+	mp->multiple_E = 0;	
 }
 
 
@@ -2931,10 +2930,10 @@ void qsort_with_multienergy(NeckDent *mp, int np_num, int size, double **inter_e
 }
 
 
-int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mean,
+NeckDent *nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mean,
 			double *vari, double variance, NeckDent *mp,
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
-			int cols, int rows)
+			int cols, int rows, int *np_num)
 {
 	printf("Starting Multiple Birth and Death\n");
 	unsigned char **MP_exist;
@@ -2942,7 +2941,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 	double dtmp;
 	double birth_rate, d_beta, d_rate;
 	double epsilon = HARDCORE_REPULSION;
-	int np_num;
+	int np_number;
 	double **inter_e, total_energy;
 	double betampp = mpp.betampp;
 	double delta = 0.9;
@@ -2971,7 +2970,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		}
 
 
-	np_num = 0;
+	np_number = 0;
 
 		
 	for (iter = 1;iter <= mpp.iter_num; iter++)
@@ -2983,36 +2982,35 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			for (j = 5;j<cols-5;j++){
 				if (MP_exist[i][j]==0){
 					dtmp = ((double)rand()/RAND_MAX);
-					
 					if (dtmp < birth_rate*lm[i][j])
 					{ // birth
-						if (np_num>MAX_MKPNT_NUM-2)
+						if (np_number>MAX_MKPNT_NUM-2)
 						{
 							printf("BREAK ALERT, i: %d j: %d \n", i,j);
 							break;
 						}
 						
 						/*Create Semi-Random Parameters for w,l,theta */
-						nd_Qbirth(i, j, &(mp[np_num]), mpp);
+						nd_Qbirth(i, j, &(mp[np_number]), mpp);
 						
 
 						/* Rotate Corner Points */
-						nd_GenCornerPoint(&(mp[np_num]));
+						nd_GenCornerPoint(&(mp[np_number]));
 						
 						/* Find Likelyhood */
-						nd_Single_Object(yimg, &(mp[np_num]), mean, vari, variance, mpp, cols, rows);
+						nd_Single_Object(yimg, &(mp[np_number]), mean, vari, variance, mpp, cols, rows);
 						
-						if (mp[np_num].single_E < 0.15)
+						if (mp[np_number].single_E < 0.15)
 						{
 							MP_exist[i][j] = 1;
-							mp[np_num].num = np_num;
-							mp[np_num].state = STATE_NEW_BORN;
-							mp[np_num].multiple_E = 0.;
-							np_num ++;
+							mp[np_number].num = np_number;
+							mp[np_number].state = STATE_NEW_BORN;
+							mp[np_number].multiple_E = 0.;
+							np_number ++;
 						}
 
 						#if INCLUDE_OPENCV_NDMULTY
-							draw_neck_dent(yimg, mp, mpp, rows, cols,np_num);
+							draw_neck_dent(yimg, mp, mpp, rows, cols,np_number);
 						#endif
 					}//End Birth
 				}//End if it doesnt exist
@@ -3020,13 +3018,13 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		}
 
 		//----------------------- death -------------------------//
-		qsort_with_multienergy (mp, np_num, sizeof(NeckDent), inter_e, compare_Single_E);
-		for(k = 0; k<np_num; k++){
+		qsort_with_multienergy (mp, np_number, sizeof(NeckDent), inter_e, compare_Single_E);
+		for(k = 0; k<np_number; k++){
 			if(mp[k].state == STATE_NEW_BORN)
-				C_prior(mp, k, np_num, epsilon, inter_e);
+				C_prior(mp, k, np_number, epsilon, inter_e);
 		}
 
-		for(k = 0; k<np_num; k++){
+		for(k = 0; k<np_number; k++){
 			if(mp[k].multiple_E>=INF) {
 				d_rate = 1.;
 			}
@@ -3043,7 +3041,7 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 			dtmp = ((double)rand()/RAND_MAX);
 			if (dtmp < d_rate){
 				MP_exist[(int)mp[k].center.y][(int)mp[k].center.x] = 0;
-				Qdelete(mp, k, &np_num, inter_e);
+				Qdelete(mp, k, &np_number, inter_e);
 				k--;
 			}
 			else{
@@ -3056,24 +3054,26 @@ int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mea
 		betampp = betampp/mpp.de_coeff;
 		//----------- for energy and mp number graph ------------//
 		total_e[iter] = 0;
-		for(i=0;i<np_num;i++)
+		for(i=0;i<np_number;i++)
 			total_e[iter] +=  mpp.alpha*mp[i].single_E+mpp.lambda_int*mp[i].multiple_E/2.;
-		mp_num[iter] = np_num;
-		printf("obj num =%d, betampp = %1.2f\n",np_num,betampp);
-		//if(iter%mpp.iter_num/2 == 0)
-		//{
-			
-		//}
-		
-		
+		mp_num[iter] = np_number;
+		printf("obj num =%d, betampp = %1.2f\n",np_number,betampp);
 		
 	} 
+
+	#if INCLUDE_OPENCV_NDMULTY
+		printf("Saving Image\n");		
+		char output_name[50];
+		sprintf(output_name, "output_with_channels.tiff");	
+		save_neck_dent_char(yimg, mp, mpp, output_name, rows, cols, np_number);
+		printf("Image Saved\n");
+	#endif
 
 	free_img((void **)MP_exist);
 	free_img((void **)inter_e);
 
-
-	return np_num;
+	*np_num = np_number;
+	return mp;
 	}
 
 

@@ -4,7 +4,7 @@
 
 /* In case OPENCV is installed. Heps for Debugging*/
 	// Load Image to the Image memory
-void LoadImageFromMemoryChar(IplImage *image, unsigned char **y)
+void LoadImageFromMemoryChar(IplImage *image, unsigned char **y, MPP_Parameters mpp)
 {
 	int i,j,k;
 	int step, channel, height, width;
@@ -21,7 +21,10 @@ void LoadImageFromMemoryChar(IplImage *image, unsigned char **y)
 			for(k = 0; k < channel; k++){
 				di = (double)i/SCALE;
 				dj = (double)j/SCALE;
-				imgdata[i*step + j*channel + k] = (uchar)(real_coord(y,di,dj));
+				if(mpp.FOREGROUND_COLOR == 0)
+					imgdata[i*step + j*channel + k] = (uchar)(real_coord(y,di,dj));
+				else
+					imgdata[i*step + j*channel + k] = (uchar)(255 - real_coord(y,di,dj));
 			}
 		}
 	}
@@ -160,16 +163,15 @@ void DrawAllLines(Candy *C, IplImage *image, int text_type, int line_thickness)
 
 	}
 
-
 }
 
 
 
-void display_image_char(unsigned char **y, int rows, int cols)
+void display_image_char(unsigned char **y, int rows, int cols, MPP_Parameters mpp )
 {
 	IplImage *img = NULL;
 	
-	LoadImageFromMemoryChar(img, y);
+	LoadImageFromMemoryChar(img, y, mpp);
 	cvNamedWindow("ChannelMpp");
 	cvShowImage("ChannelMpp", img);
 	cvWaitKey(DELAY_FOR_DISPLAY);
@@ -394,9 +396,9 @@ void save_neck_dent_char(unsigned char **yimg, NeckDent *mp, MPP_Parameters mpp,
 
 	image = cvCreateImage(cvSize(cols, rows), IPL_DEPTH_8U, channel);
 
-	LoadImageFromMemoryChar(image, yimg);
-	draw_all_nds(mp, np_num, image, SAVE_TEXT, mpp.alpha, mpp.lambda_int, 2);//TEXT_E0_E1, TEXT_NONE
+	LoadImageFromMemoryChar(image, yimg, mpp);
 
+	draw_all_nds(mp, np_num, image, SAVE_TEXT, mpp.alpha, mpp.lambda_int, 1);//TEXT_E0_E1, TEXT_NONE
 	if(!cvSaveImage(filename, image, 0)){
 		printf("Could not save: %s\n",filename);
 	}
@@ -409,8 +411,7 @@ void draw_neck_dent(unsigned char** yimg, NeckDent *mp, MPP_Parameters mpp, int 
 	IplImage *image = 0;
 	int channel = 3;
 	image = cvCreateImage(cvSize(cols, rows), IPL_DEPTH_8U, channel);
-
-	LoadImageFromMemoryChar(image, yimg);
+	LoadImageFromMemoryChar(image, yimg, mpp);
 	draw_all_nds(mp, np_num, image, 0, mpp.alpha, mpp.lambda_int, 1);
 	cvShowImage("NECK_DENT", image);
 	cvWaitKey(DELAY_FOR_DISPLAY);

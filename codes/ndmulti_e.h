@@ -117,10 +117,10 @@ void draw_all_nds_2D(NeckDent *mp, MPP_Parameters mpp, int np_num, unsigned char
 void nd_GenCornerPoint(NeckDent *mp);
 
 
-int nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mean,
+NeckDent *nd_mpp_multiple_birth_n_death(unsigned char **yimg, double **lm, double *mean,
 			double *vari, double variance, NeckDent *mp,
 			MPP_Parameters mpp, double *total_e, int *mp_num, 
-			int cols, int rows);
+			int cols, int rows, int *np_num);
 
 
 #endif

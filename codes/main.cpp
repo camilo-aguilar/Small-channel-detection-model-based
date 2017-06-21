@@ -202,10 +202,12 @@ int main( int argc , char** argv)
 	char infileName[1024], outfileName[1024];
 	char segfileName[1024], outfilePrefix[1024];
 	char gtfileName[1024], filename[1024];
+	char segfileNameMPP[1024];
 	sprintf(infileName, "%s.tiff",argv[1]);
 	sprintf(segfileName, "%s_seg.tiff",argv[1]);
 	sprintf(gtfileName, "%s_gt.tiff",argv[1]);
 	sprintf(outfilePrefix, "%s",argv[1]);
+
 
 	/* Helper Variables */
 	FILE *fp;
@@ -605,132 +607,46 @@ int main( int argc , char** argv)
 	}
 	else if(mpp.optimization_type == 1)
 	{ // Multiple Birth and Death
-		np_num = nd_mpp_multiple_birth_n_death(yfiltered, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows);
-		#if INCLUDE_OPENCV
-			save_neck_dent_char(yfiltered, mp, mpp, argv[1], rows, cols, np_num);
-		#endif
-
-
+		mp = nd_mpp_multiple_birth_n_death(yfiltered, lm, mu, vari, variance, mp, mpp, total_e, mp_num, cols, rows, &np_num);
+		printf("mp num:  %d\n", np_num);
 	}
 	else
 	{ // if(mpp.optimization_type == 2){ // RJMCMC Quility Candy model
 		np_num = QuilityCandyInterface(yfiltered, channel_img, lm, mu, vari, variance, &mp, mpp, total_e, mp_num, cols, rows);
+
 	}
 
 	
-	
-	printf("\nCalculating New Betas \n\n");
+	printf("\nCalculating New Betas \n");
 	beta[0] = 0.0;
 
 	calculate_betaimg(beta_dimg, beta, mp, np_num, mpp, cols, rows); // if mpp.gaussian_tau big, beta image channel become narrow
+	
 	double_to_uchar(beta_dimg[0], lm_img, cols, rows);
+
 	printf("EM/MPM with Adaptive Betas\n");
+	enable_blur = 0;
 	emmpm_betaimg(yimg, xt, beta_dimg, gamma, emiter, mpmiter, rows, cols, classes, blur, blur_size, enable_blur);
-	//enable_blur = 0;
-	
-
 	
 	
-	end_time=clock();
-	/* Print Statistics */
-	if(1)
-	{
-		end_time=clock();	
-		running_time = (double)(end_time-start_time)/CLOCKS_PER_SEC;
-
-		printf("Running time is:%1.0f s\n",running_time);
-		avg_width = 0;
-		avg_amp = 0;
-		avg_error = 0;
-		avg_se = 0;
-		avg_U = 0;
-		for(i=0;i<np_num;i++)
-		{
-			avg_width	+=mp[i].width;
-			avg_amp		+=mp[i].e[0];
-			avg_error	+=mp[i].e[1];
-			avg_se		+=mp[i].single_E;
-			dtmp		=mpp.alpha*mp[i].single_E+(1-mpp.alpha)*mp[i].multiple_E;
-			avg_U		+=dtmp;
-		}
-		avg_width	= avg_width	/np_num;
-		avg_amp		= avg_amp	/np_num;
-		avg_error	= avg_error	/np_num;
-		avg_se		= avg_se	/np_num;
-		avg_U		= avg_U		/np_num;
-
-
-	}
-
-	/*write objects to a text file*/
-	if(0)
-	{
-		sprintf(filename, "%s_all_mp.txt",outfilePrefix);
-		if ((fp = fopen(filename, "wb")) == NULL ) {
-			printf("Cannot open file %s\n", filename);
-			exit(1);
-		}
-		fprintf(fp,"\r\nObject num , %d\r\n",np_num);
-		fprintf(fp,"\r\n");
-		for(m = 0; m<np_num; m++){
-			fprintf(fp,"idx ,%d\r\n",mp[m].num);
-			fprintf(fp,"center position (x,y) ,%1.2f,%1.2f\r\n",mp[m].center.x,mp[m].center.y);
-			fprintf(fp,"width ,%1.2f\r\n",mp[m].width);
-			fprintf(fp,"length ,%1.2f\r\n",mp[m].length);
-			fprintf(fp,"theta ,%1.2f\r\n",mp[m].theta);
-			fprintf(fp,"single_E ,%1.2f,\r\n",mp[m].single_E);
-			fprintf(fp,"e[0], e[1], e[2],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[0],mp[m].e[1],mp[m].e[2]);
-			fprintf(fp,"e[3], e[4], e[5],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[3],mp[m].e[4],mp[m].e[5]);
-			fprintf(fp,"e[6], e[7], e[8],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[6],mp[m].e[7],mp[m].e[8]);
-			fprintf(fp,"e[9], e[10], e[11],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[9],mp[m].e[10],mp[m].e[11]);
-			fprintf(fp,"e[12], e[13], e[14],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[12],mp[m].e[13],mp[m].e[14]);
-			fprintf(fp,"e[15], e[16], e[17],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[15],mp[m].e[16],mp[m].e[17]);
-			fprintf(fp,"e[18], e[19], e[20],  %d, %1.2f, %1.2f\r\n",(int)mp[m].e[18],mp[m].e[19],mp[m].e[20]);
-			fprintf(fp,"e[21], e[22], e[23],  %1.2f, %1.2f, %1.2f\r\n",mp[m].e[21],mp[m].e[22],mp[m].e[23]);
-			fprintf(fp,"e[24], e[25], e[26],  %1.2f, %1.2f, %1.2f\r\n",mp[m].e[24],mp[m].e[25],mp[m].e[26]);
-			fprintf(fp,"e[27], , ,  %1.2f,,\r\n",mp[m].e[27]);
-			fprintf(fp,"\r\n");
-		}
-		fclose(fp);
-	}
-
-	/*Write Detected Denting/Objects in a colored image*/
-	if(0)
-	{
-		draw_all_nds_2D(mp, mpp, np_num, yimg, laplacian, cols, rows);
-		//get_TIFF(&output_img, rows, cols, 'g');
-		for (i=0; i<rows; i++)
-			for (j=0; j<cols; j++)
-			{
-				output_img.mono[i][j] = laplacian[i][j];
-				output_color_img.color[0][i][j] = 255- (int)yimg[i][j];// + laplacian[i][j];
-				output_color_img.color[1][i][j] = 255- (int)yimg[i][j];
-				output_color_img.color[2][i][j] = 255- (int)yimg[i][j];
-			}
-			
-		if ((fp = fopen("Denting_MPP_colored.tiff", "wb")) == NULL ) {
-			printf("Cannot open file %s\n", "Denting_MPP.tiff");
-			exit(1);
-		}
-		if (write_TIFF(fp, &output_color_img)) {
-			printf("Error writing TIFF file %s\n", "Denting_MPP.tiff");
-			exit(1);
-		}
-			fclose(fp);
-			
-
-		if ((fp = fopen("Denting_MPP_objects.tiff", "wb")) == NULL ) {
-			printf("Cannot open file %s\n", "Denting_MPP_objects.tiff");
-			exit(1);
-		}
-		if (write_TIFF(fp, &output_img)) {
-			printf("Error writing TIFF file %s\n", "Denting_MPP.tiff");
-			exit(1);
-		}
-		fclose(fp);
-
-	}
+	sprintf(segfileNameMPP, "%s_seg_mpp.tiff",argv[1]);
+	for (i=0; i<rows; i++)
+		for (j=0; j<cols; j++)
+			output_img.mono[i][j] = (int)xt[i][j] * 255 / (classes - 1);
 		
+	if ((fp = fopen(segfileNameMPP, "wb")) == NULL ) 
+	{
+		printf("Cannot open file %s\n", segfileNameMPP);
+		exit(1);
+	}
+	if (write_TIFF(fp, &output_img)) 
+	{
+		printf("Error writing TIFF file %s\n", segfileNameMPP);
+		exit(1);
+	}
+	fclose(fp);
+
+	
 	for(i=0; i < input_img.height; i++)
 	{
 		for(j=0; j< input_img.width; j++)
@@ -740,52 +656,49 @@ int main( int argc , char** argv)
 	}
 	printf("Finding Difference Image \n");
 	difference_image(xt, gt ,input_img.height, input_img.width,outfilePrefix);
-		
 	printf("Saving Channel Image\n");
 
 
-		for (i = 0; i < rows; i++)
+	for (i = 0; i < rows; i++)
+	{
+		for (j = 0; j < cols; j++)
 		{
-			for (j = 0; j < cols; j++)
-			{
-				yimg[i][j] = input_img.mono[i][j];
-			}
+			yimg[i][j] = input_img.mono[i][j];
 		}
+	}
 		
 
 
-		char parameter_values[100];
-		float my_width = W_MAX;
-		float my_length = L_MAX;
-		sprintf(parameter_values, "gamma_%.2f_wf_%.2f_ws_%.2f_wd_%.2f_weo_%.2f_wio_%.2f_wid_%.2f_len_%.2f_error_th_%.2f_iter_%d_",mpp.gamma_d, mpp.w_f , mpp.w_s, mpp.w_d, mpp.w_eo, mpp.w_io,my_width, my_length, mpp.error_th,mpp.iter_num);
+	char parameter_values[100];
+	float my_width = W_MAX;
+	float my_length = L_MAX;
+	sprintf(parameter_values, "gamma_%.2f_wf_%.2f_ws_%.2f_wd_%.2f_weo_%.2f_wio_%.2f_wid_%.2f_len_%.2f_error_th_%.2f_iter_%d_",mpp.gamma_d, mpp.w_f , mpp.w_s, mpp.w_d, mpp.w_eo, mpp.w_io,my_width, my_length, mpp.error_th,mpp.iter_num);
 
 
-		save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values, mpp.FOREGROUND_COLOR);
-		char output_name_temp[30] = "output";
-		save_channel_image(channel_img, yimg,input_img.height, input_img.width, output_name_temp, mpp.FOREGROUND_COLOR);
+	save_channel_image(channel_img, yimg,input_img.height, input_img.width, parameter_values, mpp.FOREGROUND_COLOR);
+	char output_name_temp[30] = "output";
+	save_channel_image(channel_img, yimg,input_img.height, input_img.width, output_name_temp, mpp.FOREGROUND_COLOR);
 
-		free(mp);
-		free_TIFF(&output_color_img);
-		free_TIFF(&output_img);
-		free_TIFF(&input_img);
-		free_TIFF(&input_gt_img);
-		free_img((void **)yimg);
-		free_img((void **)yfiltered);
-		free_img((void **)laplacian);
-		free_img((void **)gt);
-		free_img((void **)xt);
-		free_img((void **)blur);
-		free_img((void **)mpp.blur);
-		free_img((void **)lm);
-		free_img((void **)beta_dimg[0]);
-		free_img((void **)beta_dimg[1]);
-		free_img((void **)lm_img);
-		free_img((void**)channel_img);
-
-
+	free(mp);
+	free_TIFF(&output_color_img);
+	free_TIFF(&output_img);
+	free_TIFF(&input_img);
+	free_TIFF(&input_gt_img);
+	free_img((void **)yimg);
+	free_img((void **)yfiltered);
+	free_img((void **)laplacian);
+	free_img((void **)gt);
+	free_img((void **)xt);
+	free_img((void **)blur);
+	free_img((void **)mpp.blur);
+	free_img((void **)lm);
+	free_img((void **)beta_dimg[0]);
+	free_img((void **)beta_dimg[1]);
+	free_img((void **)lm_img);
+	free_img((void**)channel_img);
     	
-		printf(">>>>>>>>>>>>>>>>End of Program<<<<<<<<<<<<<\n");
-		return 0;
+	printf(">>>>>>>>>>>>>>>>End of Program<<<<<<<<<<<<<\n");
+	return 0;
 }
 
 
@@ -906,4 +819,41 @@ void save_channel_image(double **channel_img, unsigned char  **img,int height, i
 	  fclose ( fp );
 }
 
+#if 0
+	/*Write Detected Denting/Objects in a colored image*/
+	if(0)
+	{
+		draw_all_nds_2D(mp, mpp, np_num, yimg, laplacian, cols, rows);
+		//get_TIFF(&output_img, rows, cols, 'g');
+		for (i=0; i<rows; i++)
+			for (j=0; j<cols; j++)
+			{
+				output_img.mono[i][j] = laplacian[i][j];
+				output_color_img.color[0][i][j] = 255- (int)yimg[i][j];// + laplacian[i][j];
+				output_color_img.color[1][i][j] = 255- (int)yimg[i][j];
+				output_color_img.color[2][i][j] = 255- (int)yimg[i][j];
+			}
+			
+		if ((fp = fopen("Denting_MPP_colored.tiff", "wb")) == NULL ) {
+			printf("Cannot open file %s\n", "Denting_MPP.tiff");
+			exit(1);
+		}
+		if (write_TIFF(fp, &output_color_img)) {
+			printf("Error writing TIFF file %s\n", "Denting_MPP.tiff");
+			exit(1);
+		}
+			fclose(fp);
+			
 
+		if ((fp = fopen("Denting_MPP_objects.tiff", "wb")) == NULL ) {
+			printf("Cannot open file %s\n", "Denting_MPP_objects.tiff");
+			exit(1);
+		}
+		if (write_TIFF(fp, &output_img)) {
+			printf("Error writing TIFF file %s\n", "Denting_MPP.tiff");
+			exit(1);
+		}
+		fclose(fp);
+	}
+
+#endif
